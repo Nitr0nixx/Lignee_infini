@@ -2060,11 +2060,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   }
 
   /* ---------- Combats de boss ---------- */
-  function powerRatio() { return tapVal(true) / ((1 + 0.5 * S.level) * rankMult()) * (1 + P.dmg) * (1 + GB.dmg) * (1 + V('forge')); }
-  function hardness(final) {
-    var q = Math.pow(1.17, S.rank) / Math.max(1, powerRatio());
-    return final ? Math.min(2.5, Math.max(1, q)) * (1 + 0.03 * S.rank) : Math.min(1.8, Math.max(1, q * 0.7)) * (1 + 0.015 * S.rank);
-  }
+  function dmgStatic() { return (1 + P.dmg) * (1 + GB.dmg) * (1 + V('forge')) * (1 + BV('dmg') + BV('all')) * (1 + GB.all); }
+  function dpsExp() { return (income(0) + 4 * tapVal(true)) * dmgStatic(); }
+  function powerRatio() { return tapVal(true) / ((1 + 0.5 * S.level) * rankMult()) * dmgStatic(); }
+  function hardness() { return Math.min(1.5, Math.max(0.75, Math.pow(1.2, S.rank) / Math.max(1, powerRatio()))); }
+  function bossHp(sec, f) { return dpsExp() * (30 + 0.5 * Math.max(0, sec - 30)) * f * hardness(); }
   /* ---------- Vagues de monstres (combat passif) ---------- */
   var WV = { n: 1, k: 0, mob: null, next: Date.now() + 4000, atk: 0 }, WAVE = 5;
   function mobClear(delay) { WV.mob = null; $('mob').hidden = true; WV.next = Date.now() + (delay || 3000); }
@@ -2141,7 +2141,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     var now = Date.now(), inc = income(0), tap = tapVal(true);
     var hp = final ? (inc * 25 + tap * 100) * (1 + Math.min(1, S.rank * 0.03)) : inv ? inc * 10 + tap * 35 : inc * 15 + tap * 50;
     hp *= 1 + 0.15 * (S.gen - 1);
-    if (!mode) hp *= hardness(final);
     var invName = hwActive() ? 'Citrouille hantée' : withSuffix(MINI[(S.rank + 1) % 4], Math.floor(S.rank / 4)) + ' pillard';
     B = { final: final, inv: !!inv, hp: hp, max: hp, until: now + (inv ? 20000 : 30000) + 5000 * rl('sab') + 1000 * abVal(5) + 1000 * GB.temps, el: Math.floor(Math.random() * 4), name: final ? finalName(S.rank) : inv ? invName : miniName(gate()) };
     var big = final;
@@ -2151,6 +2150,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     else if (mode === 'dg') { var D = S.dg, dk = D.next; B.dg = { k: dk, room: D.room }; B.hp = B.max = (inc * 15 + tap * 50) * (1 + 0.35 * D.room) * (dk === 'elite' ? 1.8 : dk === 'boss' ? 3 : 1) * (1 + 0.02 * S.rank) * (1 + 0.15 * (S.gen - 1)); B.until = now + 25000 + D.time * 1000 + 5000 * rl('sab') + 1000 * abVal(5) + 1000 * GB.temps; B.el = Math.floor(Math.random() * 4); B.name = dk === 'boss' ? 'Seigneur du donjon' : dk === 'elite' ? 'Gardien d’élite' : 'Gardien du donjon'; big = dk === 'boss'; }
     else if (mode === 'wb') { B.wb = true; B.hp = S.wbs.hp; B.max = S.wbs.max; B.wbStart = S.wbs.hp; B.el = S.wbs.el; B.name = WBN[S.wbs.el]; big = true; }
     B.until += 1000 * BV('temps'); B.wpNext = now + 2500;
+    var dsec = (B.until - now) / 1000;
+    if (!mode) B.hp = B.max = Math.max(B.hp, bossHp(dsec, final ? Math.min(0.9, 0.6 + 0.01 * S.rank) : inv ? 0.4 : Math.min(0.65, 0.4 + 0.008 * S.rank)));
+    else if (mode === 'dg') B.hp = B.max = bossHp(dsec, B.dg.k === 'boss' ? 0.85 : Math.min(0.8, 0.4 + 0.08 * B.dg.room + (B.dg.k === 'elite' ? 0.2 : 0)));
     if (final && !mode && isUnique(S.rank)) ubSetup();
     var type = B.ub ? ubOf(S.rank).t : mode === 'raid' ? 4 : mode === 'tower' ? B.tower % 5 : mode === 'abyss' ? (B.abyss + 2) % 5 : mode === 'wb' ? 4 : final ? (S.rank % 4) + 1 : inv ? (S.rank + 1) % 4 : miniIdx(gate()) % 4;
     el.bossBox.classList.toggle('titan', mode === 'wb' || mode === 'raid');
@@ -3154,7 +3156,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function raidState() {
     var k = weekKey();
     if (!S.raid || S.raid.wk !== k) {
-      var mx = (income(0) * 200 + tapVal(true) * 1500) * (1 + 0.15 * (S.gen - 1));
+      var mx = dpsExp() * 45 * 2.2 * hardness();
       S.raid = { wk: k, hp: mx, max: mx, tries: 3, dead: false, n: Math.floor(Date.now() / 604800000) % 4, el: Math.floor(Math.random() * 4) };
     }
     return S.raid;
@@ -3913,7 +3915,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       }).catch(function () { });
     });
   }
-  var APPV = '6';
+  var APPV = '7';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
