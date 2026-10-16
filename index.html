@@ -217,6 +217,13 @@ button:disabled { cursor: default; }
 .mcell.on { background: hsl(var(--mh) 40% 22%); }
 .trbtn { background: linear-gradient(90deg, #6ae0ff, #c084ff, #ff9ad8); color: #1a1030; }
 .trbtn.arm { background: #e5787a; color: #2a0a0b; }
+.arrow { position: absolute; left: 0; top: 0; z-index: 4; width: 26px; height: 3px; margin: -1.5px 0 0 -13px; background: linear-gradient(90deg, #f4f0ea 0 70%, #ffd84a 70%); border-radius: 2px; pointer-events: none; box-shadow: 0 0 6px #ffd84a; }
+#bossBox.cursed #bsvg { filter: drop-shadow(0 0 8px #6aff5a) saturate(.8); }
+.door.voie.cur { border-color: var(--gold); }
+.door:disabled { opacity: .5; }
+.segs.vsegs { grid-template-columns: repeat(5, 1fr); margin-bottom: 8px; }
+.vsegs .seg { font-size: 18px; line-height: 1.1; padding: 4px 0; }
+.vsegs .seg small { font-size: 10px; }
 .sphead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .sp { font-family: var(--display); font-weight: 800; font-size: 28px; color: var(--accent); }
 .note { font-size: 14px; color: var(--muted); margin: 0; }
@@ -853,9 +860,33 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     for (var i = 0; i < m.length; i++) { while (n >= m[i][0]) { s += m[i][1]; n -= m[i][0]; } }
     return s;
   }
+  var VOIES = {
+    guerrier: { n: 'Guerrier', ic: '⚔️', d: 'Armures lourdes, boucliers et épées. Équilibré : +20 % de dégâts contre les boss.', alt0: 'Paysan' },
+    voleur: { n: 'Voleur', ic: '🗡️', d: 'Capuche, masque et dagues. +5 % de critiques, 8 % de chance de frapper deux fois, et tu voles de l’or en frappant les boss.', alt0: 'Vagabond',
+      names: ['Paysan', 'Larron', 'Coupe-bourse', 'Voleur', 'Filou', 'Assassin', 'Lame de l’ombre', 'Rôdeur nocturne', 'Maître-voleur', 'Ombre', 'Spectre', 'Faucheur', 'Prince des voleurs', 'Légende de l’ombre'],
+      weapons: ['Couteau', 'Dague', 'Dague courbe', 'Kriss', 'Lame dentelée', 'Stylet', 'Dague d’assassin', 'Lame de l’ombre', 'Croc nocturne', 'Lame spectrale', 'Croc du spectre', 'Dague du faucheur', 'Lame royale', 'Croc légendaire'],
+      skills: ['Larcin', 'Pas de l’ombre', 'Coup bas', 'Éventail de lames', 'Esquive', 'Bourse pleine', 'Assassinat', 'Fumigène', 'Œil de l’ombre', 'Danse des lames', 'Exécution', 'Casse du siècle', 'Marque mortelle', 'Danse des ombres'] },
+    archer: { n: 'Archer', ic: '🏹', d: 'Cape de chasse, carquois et arcs. Tire des flèches tout seul, et les points faibles apparaissent plus souvent et font plus mal.', alt0: 'Braconnier',
+      names: ['Paysan', 'Chasseur', 'Archer', 'Pisteur', 'Tireur d’élite', 'Ranger', 'Sentinelle', 'Arbalétrier royal', 'Œil de faucon', 'Gardien sylvestre', 'Archer céleste', 'Maître archer', 'Tempête de flèches', 'Légende sylvestre'],
+      weapons: ['Arc de bois', 'Arc court', 'Arc de chasse', 'Arc long', 'Arc composite', 'Arc d’élite', 'Arc de ranger', 'Arc royal', 'Arc du faucon', 'Arc sylvestre', 'Arc céleste', 'Arc de maître', 'Arc-tempête', 'Arc légendaire'],
+      skills: ['Butin de chasse', 'Tir rapide', 'Flèche perçante', 'Volée', 'Piège', 'Instinct du chasseur', 'Flèche du faucon', 'Camouflage', 'Œil de lynx', 'Pluie de flèches', 'Tir mortel', 'Trophée royal', 'Flèche d’étoile', 'Tempête de flèches'] },
+    sorcier: { n: 'Sorcier', ic: '🔮', d: 'Robe, chapeau pointu et bâton à orbe. Compétence de classe 50 % plus puissante, rechargée en 40 s, et +15 % sur les éléments efficaces.', alt0: 'Ermite',
+      names: ['Paysan', 'Apprenti', 'Sorcier', 'Mage', 'Élémentaliste', 'Enchanteur', 'Mage de bataille', 'Arcaniste', 'Mage-chevalier', 'Archimage', 'Sage', 'Mage astral', 'Grand archimage', 'Légende arcanique'],
+      weapons: ['Bâton noueux', 'Baguette', 'Bâton d’apprenti', 'Bâton de mage', 'Bâton élémentaire', 'Sceptre', 'Bâton de guerre', 'Bâton arcanique', 'Sceptre runique', 'Bâton d’archimage', 'Bâton du sage', 'Sceptre astral', 'Bâton suprême', 'Bâton légendaire'],
+      skills: ['Transmutation', 'Éclair', 'Brasier', 'Boule de feu', 'Bouclier arcanique', 'Puits de mana', 'Météore', 'Distorsion du temps', 'Clairvoyance', 'Orage', 'Désintégration', 'Pierre philosophale', 'Comète', 'Ascension arcanique'] },
+    demoniste: { n: 'Démoniste', ic: '😈', d: 'Cornes, robe sombre et grimoire. Une malédiction ronge les boss (0,5 % de leurs PV par seconde) et les monstres des vagues.', alt0: 'Hérétique',
+      names: ['Paysan', 'Occultiste', 'Démoniste', 'Invocateur', 'Nécromancien', 'Sombre pacte', 'Lieur de démons', 'Seigneur des ombres', 'Maître des âmes', 'Archidémoniste', 'Prince démon', 'Fléau', 'Seigneur démon', 'Légende infernale'],
+      weapons: ['Grimoire usé', 'Bâton d’os', 'Crâne maudit', 'Sceptre d’ossements', 'Bâton du pacte', 'Lieur d’âmes', 'Bâton des ombres', 'Sceptre du vide', 'Bâton des âmes', 'Sceptre démoniaque', 'Bâton infernal', 'Fléau des âmes', 'Sceptre du seigneur', 'Sceptre légendaire'],
+      skills: ['Tribut', 'Pacte de sang', 'Malédiction', 'Trait de l’ombre', 'Peau démoniaque', 'Siphon d’âme', 'Feu infernal', 'Lien des ombres', 'Regard du vide', 'Horde', 'Drain d’âme', 'Pacte d’or', 'Apocalypse', 'Forme démoniaque'] }
+  };
+  var VORD = ['guerrier', 'voleur', 'archer', 'sorcier', 'demoniste'];
+  function curVoie() { return S && S.voie && VOIES[S.voie] ? S.voie : 'guerrier'; }
+  function voieUnl(k) { return k === 'sorcier' ? (S.genMax || 1) >= 2 || S.gen >= 2 || S.tr > 0 : k === 'demoniste' ? (S.st.raidKills || 0) >= 1 || S.tr > 0 : true; }
+  function voieLock(k) { return k === 'sorcier' ? 'Se débloque à ta première Ascension' : k === 'demoniste' ? 'Se débloque en battant un raid hebdomadaire' : ''; }
+  function voieNames(v) { return v === 'guerrier' ? BASE : VOIES[v].names; }
   var BASE2 = ['Éveillé', 'Arcaniste', 'Astral', 'Archonte', 'Séraphin', 'Gardien stellaire', 'Héraut', 'Exarque', 'Nova', 'Primarque', 'Céleste', 'Souverain astral', 'Avatar', 'Démiurge'];
   function className(r) {
-    var B = BASE.length, c = Math.floor(r / B), n = (S && S.tr > 0 ? BASE2 : BASE)[r % B];
+    var B = BASE.length, c = Math.floor(r / B), v = curVoie(), n = v === 'guerrier' ? (S && S.tr > 0 ? BASE2 : BASE)[r % B] : r % B === 0 && r > 0 ? VOIES[v].alt0 : VOIES[v].names[r % B];
     if (c === 0) return n;
     var s = SUFF[(c - 1) % SUFF.length], t = Math.floor((c - 1) / SUFF.length) + 1;
     return n + ' ' + s + (t > 1 ? ' ' + roman(t) : '');
@@ -900,7 +931,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
 
   /* ---------- État et sauvegarde ---------- */
   function fresh() {
-    return { gold: 0, level: 1, rank: 0, sp: 0, skills: {}, last: Date.now(), frenzyUntil: 0, frenzyReady: 0, miniDone: 0, nextEvent: 0, ev: null, st: { clics: 0, or: 0, mini: 0, coffres: 0, inv: 0, best: 0, hatch: 0, time: 0, maxHit: 0, finals: 0, blocks: 0, skills: 0, lvls: 0, feeds: 0, tower: 0, wb: 0, floors: 0, abyss: 0, ub: 0, weak: 0, mobs: 0 }, ach: {}, souls: 0, soulsTotal: 0, gen: 1, relics: {}, fx: {}, pets: [], eggs: [], equip: [null, null], petSeq: 0, newPet: false, treats: 0, shards: 0, daily: { last: '', streak: 0 }, quests: null, items: [], gear: { casque: null, armure: null, anneau: null }, itemSeq: 0, look: null, newItem: false, tower: { floor: 1 }, abyss: { floor: 1 }, wbs: null, village: {}, tut: 0, unl: [], story: [], candy: 0, hwAura: false, exp: [], dg: null, mast: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], mat: 0, tr: 0, ess: 0, genMax: 1, mtitle: -1, raid: null, boons: {}, boonQ: 0, boonOffer: null, bal2: 1 };
+    return { gold: 0, level: 1, rank: 0, sp: 0, skills: {}, last: Date.now(), frenzyUntil: 0, frenzyReady: 0, miniDone: 0, nextEvent: 0, ev: null, st: { clics: 0, or: 0, mini: 0, coffres: 0, inv: 0, best: 0, hatch: 0, time: 0, maxHit: 0, finals: 0, blocks: 0, skills: 0, lvls: 0, feeds: 0, tower: 0, wb: 0, floors: 0, abyss: 0, ub: 0, weak: 0, mobs: 0 }, ach: {}, souls: 0, soulsTotal: 0, gen: 1, relics: {}, fx: {}, pets: [], eggs: [], equip: [null, null], petSeq: 0, newPet: false, treats: 0, shards: 0, daily: { last: '', streak: 0 }, quests: null, items: [], gear: { casque: null, armure: null, anneau: null }, itemSeq: 0, look: null, newItem: false, tower: { floor: 1 }, abyss: { floor: 1 }, wbs: null, village: {}, tut: 0, unl: [], story: [], candy: 0, hwAura: false, exp: [], dg: null, mast: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], mastV: {}, voie: 'guerrier', voiePend: true, mtv: 'guerrier', mat: 0, tr: 0, ess: 0, genMax: 1, mtitle: -1, raid: null, boons: {}, boonQ: 0, boonOffer: null, bal2: 1 };
   }
   function load() {
     var s = fresh();
@@ -920,6 +951,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
         if (Array.isArray(o.mast) && o.mast.length === 14) s.mast = o.mast.map(function (x) { return +x || 0; });
         else { var bst = Math.max(s.rank || 0, (o.st && o.st.best) || 0); for (var mr = 0; mr < bst; mr++) s.mast[mr % 14] += 1 + Math.floor(mr / 14); }
         s.genMax = Math.max(s.genMax || 1, s.gen || 1);
+        if (o.mastV && typeof o.mastV === 'object') s.mastV = o.mastV;
+        if (typeof o.voie === 'string' && VOIES[o.voie]) { s.voie = o.voie; s.voiePend = !!o.voiePend; } else { s.voie = 'guerrier'; s.voiePend = (s.rank || 0) >= 1 || (s.gen || 1) > 1; s.voieNew = s.voiePend; }
+        if (typeof o.mtv === 'string' && VOIES[o.mtv]) s.mtv = o.mtv;
         if (Array.isArray(o.boonOffer)) s.boonOffer = o.boonOffer;
         if (typeof o.bal2 !== 'number') { s.boonQ = (s.rank || 0); s.balNote = true; }
         if (o.st && typeof o.st === 'object') for (var sk in s.st) { if (typeof o.st[sk] === 'number' && isFinite(o.st[sk])) s.st[sk] = o.st[sk]; }
@@ -977,8 +1011,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   /* ---------- Maîtrise des classes ---------- */
   var MT = [1, 3, 6, 10, 15];
   function mastUnl() { return S.gen >= 2 || S.tr > 0; }
-  function mastLv(i) { var v = S.mast[i] || 0, l = 0; MT.forEach(function (t) { if (v >= t) l++; }); return l; }
-  function mastTotal() { var t = 0; for (var i = 0; i < 14; i++) t += mastLv(i); return t; }
+  function mastArr(v) { v = v || curVoie(); if (v === 'guerrier') return S.mast; if (!S.mastV[v]) S.mastV[v] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; return S.mastV[v]; }
+  function mastLv(i, v) { var x = mastArr(v)[i] || 0, l = 0; MT.forEach(function (t) { if (x >= t) l++; }); return l; }
+  function mastTotal() { var t = 0; VORD.forEach(function (v) { for (var i = 0; i < 14; i++) t += mastLv(i, v); }); return t; }
+  var mastView = null;
   function mastMult() { return mastUnl() ? 1 + 0.02 * mastTotal() : 1; }
   function essMult() { return 1 + 0.8 * (S.ess || 0); }
   function endMult() { return mastMult() * essMult(); }
@@ -1028,7 +1064,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     BOONS.forEach(function (b) { if (BV(b.k)) h += '<span class="ctag">' + b.n + ' : ' + boonTxt(b, Math.round(BV(b.k) * 1000) / 1000) + '</span>'; });
     return h;
   }
-  function critChance() { return Math.min(0.85, 0.03 + sum.crit + P.crit + buffM('crit') + GB.crit + V('temple') + wxCrit() + BV('crit')); }
+  function critChance() { return Math.min(0.85, 0.03 + sum.crit + P.crit + buffM('crit') + GB.crit + V('temple') + wxCrit() + BV('crit') + (curVoie() === 'voleur' ? 0.05 : 0)); }
   function offEff() { return Math.min(1.5, 0.4 + sum.off + P.off + GB.off + V('taverne')); }
   function cost0() { return 150 * Math.pow(1.55, S.rank) * Math.pow(1.13, Math.max(0, S.rank - 3)) * (S.rank === 0 ? 0.25 : S.rank === 1 ? 0.5 : 1) * Math.pow(G, S.level - 1) * (1 - Math.min(0.6, sum.rab + BV('rab'))) * (evOn('marchand') ? 0.7 : 1); }
   function buyCost(n) { return cost0() * (Math.pow(G, n) - 1) / (G - 1); }
@@ -1065,7 +1101,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   var WMAT = ['', ' d’or', ' de cristal', ' d’obsidienne', ' céleste', ' des étoiles'];
   function wIdx(r) { var i = r % 14; return S && S.tr > 0 && i === 0 ? 10 : i; }
   function wTier(r) { return Math.floor(r / 14) + (S && S.tr > 0 ? 2 : 0); }
-  function weaponName(r) { var t = wTier(r); return WEAPONS[wIdx(r)] + (t ? WMAT[1 + (t - 1) % 5] : ''); }
+  function weaponName(r) { var t = wTier(r), v = curVoie(); return (v === 'guerrier' ? WEAPONS[wIdx(r)] : VOIES[v].weapons[r % 14]) + (t ? WMAT[1 + (t - 1) % 5] : ''); }
   var WTIP = [-94, -54, -130, -70, -78, -94, -114, -130, -86, -92, -104, -98, -92, -116];
   function weaponSVG(i, trim, glow, OL, t) {
     t = t || 0; var tm = t ? 1 + (t - 1) % 5 : 0;
@@ -1178,15 +1214,15 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     bend = bend || 0;
     return 'M' + (x - w) + ' ' + base + ' Q' + (x - w * 1.25 + bend * 0.3) + ' ' + (base - hgt * 0.45) + ' ' + (x + bend) + ' ' + (base - hgt) + ' Q' + (x + w * 1.25 + bend * 0.3) + ' ' + (base - hgt * 0.45) + ' ' + (x + w) + ' ' + base + ' Z';
   }
-  function weaponGems(i, t, glow, OL) {
+  function weaponGems(i, t, glow, OL, tipOv) {
     if (!t) return '';
-    var tip = WTIP[i], x = '', n = Math.min(t, 3);
+    var tip = tipOv || WTIP[i], x = '', n = Math.min(t, 3);
     for (var k = 0; k < n; k++) { var y = (tip * (0.3 + 0.18 * k)).toFixed(1); x += '<path d="M0 ' + (y - 4) + ' L3 ' + y + ' L0 ' + (+y + 4) + ' L-3 ' + y + ' Z" fill="' + glow + '" stroke="' + OL + '" stroke-width="1"/>'; }
     return x;
   }
-  function weaponFx(i, t, glow, animate, uid) {
+  function weaponFx(i, t, glow, animate, uid, tipOv) {
     if (!t) return '';
-    var tip = WTIP[i] * (1 + 0.02 * Math.min(t, 4)), x = '', A = function (c) { return animate ? ' class="' + c + '"' : ''; };
+    var tip = (tipOv || WTIP[i]) * (1 + 0.02 * Math.min(t, 4)), x = '', A = function (c) { return animate ? ' class="' + c + '"' : ''; };
     x += '<ellipse cx="0" cy="' + (tip / 2).toFixed(0) + '" rx="' + (10 + 3 * Math.min(t, 4)) + '" ry="' + (-tip / 2 + 10).toFixed(0) + '" fill="' + glow + '" opacity="' + (0.12 + 0.05 * Math.min(t, 4)).toFixed(2) + '"/>';
     if (t >= 2) for (var k = 0; k < 5; k++) { var y = tip * (0.15 + 0.18 * k); x += '<path' + A(k % 2 ? 'flick2' : 'flick') + ' d="' + flameP((k % 2 ? 5 : -5), y + 10, 22 + k * 2, 6) + '" fill="url(#fl' + uid + ')"/>'; }
     if (t >= 3) x += '<g style="filter:drop-shadow(0 0 3px ' + glow + ')"><circle cx="0" cy="' + (tip * 0.62).toFixed(0) + '" r="15" fill="none" stroke="' + glow + '" stroke-width="2" stroke-dasharray="6 4"' + A('rune') + '/><circle cx="0" cy="' + (tip * 0.62).toFixed(0) + '" r="9" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 3"' + A('rune rev') + '/></g>';
@@ -1210,6 +1246,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     var hairL = peasant ? '#8a6040' : 'hsl(' + hh + ' 90% 88%)';
     var iris = r >= 6 ? glow : peasant ? '#6a8a4a' : 'hsl(' + ((h + 200) % 360) + ' 80% 55%)';
     var irisD = r >= 6 ? 'hsl(' + h + ' 80% 35%)' : peasant ? '#2f4a22' : 'hsl(' + ((h + 200) % 360) + ' 70% 25%)';
+    var VO = peasant ? 'guerrier' : curVoie(), robe = VO === 'sorcier' || VO === 'demoniste';
+    if (VO === 'voleur') { armor = 'hsl(' + h + ' 16% 24%)'; armorD = 'hsl(' + h + ' 18% 13%)'; armorL = 'hsl(' + h + ' 22% 42%)'; cloth = '#1d1a24'; cape = 'hsl(' + h + ' 35% 20%)'; capeD = 'hsl(' + h + ' 40% 10%)'; }
+    else if (VO === 'archer') { var gh = 95 + (h % 50); armor = 'hsl(' + gh + ' 32% 30%)'; armorD = 'hsl(' + gh + ' 35% 18%)'; armorL = 'hsl(' + gh + ' 40% 48%)'; cloth = '#4a3a28'; cape = 'hsl(' + gh + ' 38% 24%)'; capeD = 'hsl(' + gh + ' 40% 14%)'; }
+    else if (VO === 'sorcier') { armor = 'hsl(' + h + ' 55% 36%)'; armorD = 'hsl(' + h + ' 60% 20%)'; armorL = 'hsl(' + h + ' 75% 68%)'; cloth = 'hsl(' + h + ' 50% 22%)'; trim = '#ffd06a'; }
+    else if (VO === 'demoniste') { armor = '#2c1a3a'; armorD = '#160c22'; armorL = '#6a3a8a'; cloth = '#1a1024'; cape = '#2a0e30'; capeD = '#12061a'; glow = 'hsl(110 95% 55%)'; iris = glow; irisD = 'hsl(110 80% 30%)'; }
     if (cosmic) {
       armor = 'hsl(' + h + ' 45% 24%)'; armorD = 'hsl(' + h + ' 55% 12%)'; armorL = 'hsl(' + h + ' 95% 78%)';
       cloth = 'hsl(' + ((h + 250) % 360) + ' 40% 14%)'; cape = 'hsl(' + ((h + 260) % 360) + ' 60% 26%)'; capeD = '#0a0820'; trim = '#bff4ff';
@@ -1264,6 +1305,85 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       if (c === 12) { x = '<path d="M80 18 Q56 12 48 -14 Q62 0 84 6 Z" fill="' + steelL + '"' + sw + '/>'; return mirror(x) + '<path d="M77 36 Q74 2 100 1 Q126 2 123 36 L118 36 Q117 18 100 16 Q83 18 82 36 Z" fill="' + DARK + '"' + sw + '/><path d="M92 4 L95 -10 L98 2 M102 2 L105 -10 L108 4" fill="' + DARK + '"' + sw1 + '/><path d="M82 26 Q100 18 118 26" stroke="#ff4d5e" stroke-width="2" fill="none"/><circle cx="100" cy="12" r="2.6" fill="#ff4d5e"/>'; }
       x = '<path d="M80 24 Q60 14 54 -8 Q64 2 70 0 Q66 10 74 8 Q70 18 82 20 Z" fill="' + trim + '"' + sw + '/>';
       return mirror(x) + '<path d="M79 26 Q100 16 121 26" stroke="' + OL + '" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M79 26 Q100 16 121 26" stroke="' + trim + '" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M100 4 L104 14 L114 16 L104 19 L100 29 L96 19 L86 16 L96 14 Z" fill="' + glow + '"' + sw1 + '/>';
+    }
+    var vTip = VO === 'voleur' ? -(39 + cb * 1.6) : VO === 'archer' ? -62 : VO === 'sorcier' ? -120 : VO === 'demoniste' ? -114 : 0;
+    function vMat() { var tm = wt ? 1 + (wt - 1) % 5 : 0; return { st: ['#eef2f8', '#f7e3a4', '#d2f1ff', '#3a2a4e', '#fff6fd', '#e8f0ff'][tm], wood: ['#8a5c36', '#3e2616', '#2a3048', '#1a1424', '#d8c4f0', '#2a2a5a'][tm], tr: wt ? (tm === 3 ? glow : '#ffd84a') : trim }; }
+    function dagger(c) {
+      var m = vMat(), L = 30 + c * 1.6, x = '<path d="M-4 -6 L-3.5 -' + L + ' L0 -' + (L + 9) + ' L3.5 -' + L + ' L4 -6 Z" fill="' + m.st + '"' + sw + '/><path d="M0 -' + (L + 2) + ' V-10" stroke="' + (wt ? glow : '#b8c2d2') + '" stroke-width="1.5"/>';
+      if (c >= 9) x += '<path d="M3.5 -' + (L - 4) + ' l4 3 -4 3 4 3 -4 3" stroke="' + OL + '" stroke-width="1.5" fill="' + m.st + '"/>';
+      x += c >= 5 ? '<path d="M-12 -10 Q0 -2 12 -10 L10 -4 Q0 2 -10 -4 Z" fill="' + m.tr + '"' + sw1 + '/>' : '<rect x="-9" y="-9" width="18" height="5" rx="2" fill="#a8b2c2"' + sw1 + '/>';
+      x += '<rect x="-2.5" y="-4" width="5" height="12" rx="2" fill="#3a2a22"' + sw1 + '/><circle cx="0" cy="11" r="3" fill="' + m.tr + '"' + sw1 + '/>';
+      if (c >= 12) x += '<circle cx="0" cy="-7" r="2.6" fill="' + glow + '"/>';
+      return x;
+    }
+    function voieWeapon(c) {
+      var m = vMat(), x = '';
+      if (VO === 'voleur') return dagger(c);
+      if (VO === 'archer') {
+        var bw = 30 + c;
+        x = '<path d="M0 -62 Q' + bw + ' -6 0 50" stroke="' + OL + '" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M0 -62 Q' + bw + ' -6 0 50" stroke="' + m.wood + '" stroke-width="4.5" fill="none" stroke-linecap="round"/>';
+        if (c >= 5) x += '<path d="M0 -62 q-6 -2 -6 -8 M0 50 q-6 2 -6 8" stroke="' + m.tr + '" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M' + (bw / 2 - 2) + ' -12 h5 M' + (bw / 2 - 2) + ' 0 h5" stroke="' + m.tr + '" stroke-width="3"/>';
+        if (c >= 10) x += '<path d="M' + (bw * 0.35) + ' -40 q12 -10 22 -6 q-10 2 -14 10 Z M' + (bw * 0.35) + ' 30 q12 10 22 6 q-10 -2 -14 -10 Z" fill="' + glow + '" fill-opacity=".7" stroke="' + OL + '" stroke-width="1"/>';
+        x += '<path d="M0 -62 L-8 -6 L0 50" stroke="' + (c >= 10 ? glow : '#f4f0ea') + '" stroke-width="1.3" fill="none"/>';
+        x += '<path d="M-8 -6 H40" stroke="#d8c0a0" stroke-width="2.2"/><path d="M40 -10 L49 -6 L40 -2 Z" fill="' + m.st + '"' + sw1 + '/><path d="M-8 -6 l-6 -4 M-8 -6 l-6 4 M-4 -6 l-6 -4 M-4 -6 l-6 4" stroke="#d84a3c" stroke-width="1.8"/>';
+        return x;
+      }
+      if (VO === 'sorcier') {
+        var orr = 7 + c * 0.25;
+        x = '<rect x="-2.5" y="-100" width="5" height="114" rx="2" fill="' + m.wood + '"' + sw + '/>';
+        if (c >= 3) x += '<path d="M-3 -98 Q-12 -112 -3 -124 M3 -98 Q12 -112 3 -124" stroke="' + OL + '" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M-3 -98 Q-12 -112 -3 -124 M3 -98 Q12 -112 3 -124" stroke="' + m.tr + '" stroke-width="2.6" fill="none" stroke-linecap="round"/>';
+        x += '<circle cx="0" cy="-110" r="' + orr + '" fill="' + glow + '" stroke="' + OL + '" stroke-width="2"/><circle cx="-2.5" cy="-113" r="' + (orr * 0.35) + '" fill="#fff" opacity=".85"/>';
+        if (c >= 8) x += '<ellipse cx="0" cy="-110" rx="' + (orr + 7) + '" ry="4" fill="none" stroke="' + m.tr + '" stroke-width="1.6"/>';
+        if (c >= 12) x += '<circle cx="14" cy="-126" r="3.5" fill="' + glow + '" stroke="' + OL + '" stroke-width="1"/>';
+        x += '<rect x="-4" y="-40" width="8" height="5" rx="1.5" fill="' + m.tr + '"' + sw1 + '/>';
+        return x;
+      }
+      x = '<rect x="-2.5" y="-88" width="5" height="104" rx="2" fill="#4a3446"' + sw + '/><path d="M-3.5 -70 h7 M-3.5 -40 h7 M-3.5 -10 h7" stroke="#e8dcc8" stroke-width="3"/>';
+      x += '<path class="flick" d="' + flameP(0, -98, 24 + c, 8) + '" fill="' + glow + '" opacity=".8"/>';
+      if (c >= 5) x += '<path d="M-7 -98 Q-18 -104 -16 -116 Q-12 -106 -4 -102 Z M7 -98 Q18 -104 16 -116 Q12 -106 4 -102 Z" fill="#3a2a2a"' + sw1 + '/>';
+      x += '<path d="M-9 -96 Q-9 -108 0 -108 Q9 -108 9 -96 L6 -88 L-6 -88 Z" fill="#e8dcc8"' + sw + '/><circle cx="-3.5" cy="-97" r="2.2" fill="' + glow + '"/><circle cx="3.5" cy="-97" r="2.2" fill="' + glow + '"/><path d="M-3 -90 V-87 M0 -90 V-87 M3 -90 V-87" stroke="' + OL + '" stroke-width="1"/>';
+      return x;
+    }
+    function voieHelmet(c) {
+      var x = '', hc;
+      if (VO === 'voleur') {
+        hc = armorD;
+        x = '<path d="M73 48 Q70 4 100 2 Q130 4 127 48 L120 48 Q122 16 100 14 Q78 16 80 48 Z" fill="' + hc + '"' + sw + '/>';
+        x += '<path d="M83 47 Q100 52 117 47 L117 49 Q114 59 100 65 Q86 59 83 49 Z" fill="#1a1620"' + sw + '/><path d="M84 50 Q100 55 116 50" stroke="' + armorL + '" stroke-width="1.2" fill="none"/>';
+        if (c >= 5) x += '<path d="M112 68 Q140 72 158 92 Q138 86 118 78 Z" fill="#b8283a"' + sw + '/>';
+        if (c >= 10) x += '<path d="M81 24 Q100 15 119 24" stroke="' + trim + '" stroke-width="3" fill="none"/><path d="M100 15 L103 19 L100 23 L97 19 Z" fill="' + glow + '"' + sw1 + '/>';
+        return x;
+      }
+      if (VO === 'archer') {
+        if (c < 6) return '<path d="M77 32 Q84 2 108 4 Q126 8 130 26 Q104 22 77 32 Z" fill="' + cape + '"' + sw + '/><path d="M80 28 Q104 20 128 24" stroke="' + armorL + '" stroke-width="2" fill="none"/><path d="M114 10 Q140 -14 162 -10 Q140 -2 118 16 Z" fill="#d84a3c"' + sw + '/><path d="M118 12 Q140 -6 158 -9" stroke="#8a2a20" stroke-width="1" fill="none"/>';
+        if (c < 11) {
+          x = '<path d="M73 48 Q70 4 100 2 Q130 4 127 48 L120 48 Q122 16 100 14 Q78 16 80 48 Z" fill="' + cape + '"' + sw + '/>';
+          for (var k = 0; k < 5; k++) x += '<ellipse cx="' + (86 + k * 7) + '" cy="' + (18 - Math.abs(2 - k) * 1.5) + '" rx="4" ry="2.2" fill="hsl(' + (100 + k * 8) + ' 60% 45%)" stroke="' + OL + '" stroke-width="1" transform="rotate(' + (k * 20 - 40) + ' ' + (86 + k * 7) + ' ' + (18 - Math.abs(2 - k) * 1.5) + ')"/>';
+          return x;
+        }
+        x = '<path d="M80 24 Q62 18 52 0 Q64 6 68 2 Q66 12 74 10 Q72 18 82 20 Z" fill="#f4f0ea"' + sw + '/>';
+        return mirror(x) + '<path d="M79 26 Q100 16 121 26" stroke="' + OL + '" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M79 26 Q100 16 121 26" stroke="' + trim + '" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M100 14 L104 20 L100 26 L96 20 Z" fill="' + glow + '"' + sw1 + '/>';
+      }
+      if (VO === 'sorcier') {
+        if (c < 9) {
+          x = '<ellipse cx="100" cy="27" rx="42" ry="8" fill="' + armorD + '"' + sw + '/><path d="M78 26 Q92 2 100 -16 Q106 -28 124 -30 Q112 -20 112 -6 Q116 8 122 26 Z" fill="' + armor + '"' + sw + '/><path d="M80 21 Q100 14 120 21" stroke="' + trim + '" stroke-width="4" fill="none"/>';
+          if (c >= 4) x += '<path d="M100 2 l1.6 3.4 3.6 .4 -2.7 2.4 .8 3.6 -3.3 -1.9 -3.3 1.9 .8 -3.6 -2.7 -2.4 3.6 -.4 Z M107 -8 l1 2 2.2 .3 -1.6 1.5 .4 2.2 -2 -1.1 -2 1.1 .4 -2.2 -1.6 -1.5 2.2 -.3 Z" fill="' + trim + '"/>';
+          if (c >= 7) x += '<circle cx="124" cy="-30" r="3.5" fill="' + glow + '"/>';
+          return x;
+        }
+        return '<g style="filter:drop-shadow(0 0 3px ' + glow + ')"><ellipse cx="100" cy="6" rx="28" ry="6" fill="none" stroke="' + glow + '" stroke-width="2" stroke-dasharray="5 4"' + A('rune') + '/></g><path d="M80 26 Q100 18 120 26" stroke="' + trim + '" stroke-width="3" fill="none"/><path d="M100 12 L105 19 L100 27 L95 19 Z" fill="' + glow + '"' + sw1 + '/>';
+      }
+      var hl = -4 - Math.min(c, 7) * 1.4;
+      x = '<path d="M84 26 Q66 14 64 ' + hl + ' Q76 6 92 18 Z" fill="#3a2a2a"' + sw + '/>' + (c >= 5 ? '<circle cx="64" cy="' + hl + '" r="2.6" fill="' + glow + '"/>' : '');
+      x = '<path d="M73 48 Q70 4 100 2 Q130 4 127 48 L120 48 Q122 16 100 14 Q78 16 80 48 Z" fill="#1c0f26"' + sw + '/>' + mirror(x);
+      if (c >= 10) x += '<path d="M86 18 L88 4 L93 15 L100 -2 L107 15 L112 4 L114 18 Z" fill="#e8dcc8"' + sw + '/>';
+      return x + '<path d="M80 28 Q100 20 120 28" stroke="' + glow + '" stroke-width="1.6" fill="none" opacity=".8"/>';
+    }
+    function voieDeco(c) {
+      if (VO === 'voleur') return '<path d="M80 82 L120 122 M120 82 L80 122" stroke="#4a3626" stroke-width="4.5"/><rect x="95" y="97" width="10" height="9" rx="2" fill="' + trim + '"' + sw1 + '/>' + (c >= 7 ? '<path d="M86 88 l-3 -8 3 2 3 -2 Z M114 88 l3 -8 -3 2 -3 -2 Z" fill="#dfe5ee"' + sw1 + '/>' : '');
+      if (VO === 'archer') return '<path d="M120 80 L84 124" stroke="#5a3a22" stroke-width="5"/><path d="M98 82 L102 82 M97 90 L103 90 M97 98 L103 98" stroke="' + armorD + '" stroke-width="1.6"/><path d="M116 84 q6 -6 10 0 q-4 6 -10 0 Z" fill="#5ac850"' + sw1 + '/>';
+      if (VO === 'sorcier') return '<path d="M86 78 L100 100 L114 78" stroke="' + trim + '" stroke-width="2.6" fill="none"/><path d="M100 100 L100 128" stroke="' + trim + '" stroke-width="2"/>' + (c >= 3 ? '<circle cx="100" cy="110" r="5" fill="none" stroke="' + glow + '" stroke-width="1.6"/>' : '');
+      return '<circle cx="100" cy="100" r="9" fill="none" stroke="' + glow + '" stroke-width="1.6"/><path d="M100 91 L105 108 L91 97 L109 97 L95 108 Z" fill="none" stroke="' + glow + '" stroke-width="1.1"/>';
     }
     var o = '<svg viewBox="0 -18 200 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + className(r) + '">';
     o += '<defs><linearGradient id="fl' + uid + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="' + glow + '" stop-opacity=".85"/><stop offset=".6" stop-color="' + glow + '" stop-opacity=".35"/><stop offset="1" stop-color="' + glow + '" stop-opacity="0"/></linearGradient>' +
@@ -1324,36 +1444,43 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     } else if (hs === 1) back = 'M74 44 Q72 12 100 11 Q128 12 126 44 L134 112 Q120 102 114 92 L86 92 Q80 102 66 112 Z';
     else if (hs === 2) back = 'M76 44 Q76 12 100 12 Q124 12 124 44 L124 56 Q110 48 76 56 Z M116 22 Q152 26 164 72 Q154 64 142 62 Q154 88 148 116 Q132 86 118 48 Z';
     else back = 'M76 48 L72 30 L82 32 L84 16 L94 24 L100 10 L106 24 L118 14 L118 32 L128 30 L124 48 L126 66 L114 56 L86 56 L74 66 Z';
-    if (cb === 10) o += '<path d="M66 50 Q64 2 100 0 Q136 2 134 50 L138 82 Q100 94 62 82 Z" fill="' + DARK + '"' + sw + '/>';
+    var hoodV = VO === 'voleur' || VO === 'demoniste' || (VO === 'archer' && cb >= 6 && cb < 11);
+    if (VO !== 'guerrier') { if (hoodV) o += '<path d="M66 50 Q64 2 100 0 Q136 2 134 50 L138 82 Q100 94 62 82 Z" fill="' + (VO === 'archer' ? cape : VO === 'voleur' ? armorD : '#1c0f26') + '"' + sw + '/>'; else o += '<g' + A('sway') + '><path d="' + back + '" fill="' + hairS + '"' + sw + '/></g>'; }
+    else if (cb === 10) o += '<path d="M66 50 Q64 2 100 0 Q136 2 134 50 L138 82 Q100 94 62 82 Z" fill="' + DARK + '"' + sw + '/>';
     else if (cb === 9) o += '<path d="M72 44 Q70 8 100 6 Q130 8 128 44 L130 80 Q100 90 70 80 Z" fill="' + steel + '"' + sw + '/>';
     else o += '<g' + A('sway') + '><path d="' + back + '" fill="' + hairS + '"' + sw + '/></g>';
+    if (VO === 'archer') o += '<g transform="translate(118,64) rotate(24)"><path d="M-4 0 L-7 -14 M1 0 L1 -16 M6 0 L9 -13" stroke="#d8c0a0" stroke-width="2"/><path d="M-10 -14 l3 -6 3 6 Z M-2 -16 l3 -6 3 6 Z M6 -13 l3 -6 3 6 Z" fill="#d84a3c"/><rect x="-8" y="0" width="16" height="54" rx="4" fill="#6a4a2a"' + sw + '/><path d="M-8 10 H8 M-8 44 H8" stroke="' + trim + '" stroke-width="2"/></g>';
     // jambes et bottes
     o += '<path d="M102 138 L117 138 Q123 172 122 200 Q125 230 127 256 L116 258 Q112 230 110 202 Q104 172 102 138 Z" fill="' + cloth + '"' + sw + '/>';
     o += '<path d="M83 138 L98 138 Q96 172 92 200 Q88 230 86 256 L75 256 Q78 230 79 200 Q80 170 83 138 Z" fill="' + cloth + '"' + sw + '/>';
     o += '<path d="M76 228 L90 228 L88 260 Q93 266 98 274 L68 274 Q71 264 75 258 Z" fill="' + armorD + '"' + sw + '/><path d="M76 236 L89 236" stroke="' + trim + '" stroke-width="2.5"/>';
     o += '<path d="M112 228 L126 228 L127 258 Q132 264 138 274 L110 274 Q113 264 113 258 Z" fill="' + armorD + '"' + sw + '/><path d="M113 236 L126 236" stroke="' + trim + '" stroke-width="2.5"/>';
     if (r >= 2) o += '<path d="M79 196 L91 196 L90 210 L80 210 Z M111 196 L123 196 L123 210 L112 210 Z" fill="' + armorL + '"' + sw + '/>';
+    if (robe) o += '<path d="M80 120 L120 120 Q130 190 138 268 Q100 276 62 268 Q70 190 80 120 Z" fill="' + armor + '"' + sw + '/><path d="M104 124 Q116 190 124 270 L112 272 Q108 200 102 126 Z" fill="' + armorD + '" opacity=".5"/><path d="M64 262 Q100 270 136 262" stroke="' + trim + '" stroke-width="3" fill="none"/><path d="M100 128 L100 270" stroke="' + armorD + '" stroke-width="2"/>';
     // jupe de mailles / pans du manteau
-    o += '<path d="M82 126 L118 126 L130 178 Q114 170 100 180 Q86 170 70 178 Z" fill="' + cloth + '"' + sw + '/><path d="M100 128 L100 178" stroke="' + OL + '" stroke-width="1.5"/>';
-    o += '<path d="M73 172 Q86 166 100 175 Q114 166 127 172" stroke="' + trim + '" stroke-width="2.5" fill="none"/>';
+    if (!robe) o += '<path d="M82 126 L118 126 L130 178 Q114 170 100 180 Q86 170 70 178 Z" fill="' + cloth + '"' + sw + '/><path d="M100 128 L100 178" stroke="' + OL + '" stroke-width="1.5"/>';
+    if (!robe) o += '<path d="M73 172 Q86 166 100 175 Q114 166 127 172" stroke="' + trim + '" stroke-width="2.5" fill="none"/>';
     // torse
     o += '<path d="M76 76 Q100 70 124 76 L118 128 Q100 133 82 128 Z" fill="' + armor + '"' + sw + '/>';
     o += '<path d="M104 77 Q118 76 122 80 L117 126 Q110 129 104 130 Q110 100 104 77 Z" fill="' + armorD + '" opacity=".55"/>';
     o += '<path d="M86 84 Q100 79 114 84 L110 110 Q100 117 90 110 Z" fill="' + armorL + '" opacity=".35"/>';
     o += '<path d="M79 80 Q78 104 84 126" stroke="' + armorL + '" stroke-width="2" fill="none" opacity=".8"/>';
-    o += armorDeco(cb);
+    o += VO === 'guerrier' ? armorDeco(cb) : voieDeco(cb);
     if (cosmic) for (var si = 0; si < 9; si++) o += '<circle cx="' + (82 + rnd(r + si * 13) * 36).toFixed(1) + '" cy="' + (80 + rnd(r * 2 + si * 7) * 44).toFixed(1) + '" r="' + (0.6 + rnd(si * 5 + r) * 0.9).toFixed(1) + '" fill="#fff" opacity=".85"/>';
     o += '<rect x="81" y="122" width="38" height="8" fill="' + (peasant ? '#4a3018' : trim) + '"' + sw + '/>';
-    if (r >= 5 && [5, 8, 9, 10, 11, 13].indexOf(cb) < 0) o += '<path d="M100 90 L106 98 L100 106 L94 98 Z" fill="' + glow + '"' + sw + '/>';
+    if (r >= 5 && VO === 'guerrier' && [5, 8, 9, 10, 11, 13].indexOf(cb) < 0) o += '<path d="M100 90 L106 98 L100 106 L94 98 Z" fill="' + glow + '"' + sw + '/>';
     if (S.gen > 1) o += '<g transform="translate(100,126)"><circle r="5.5" fill="#1d1830" stroke="' + OL + '" stroke-width="1.5"/><path d="M0 -4 L1.1 -1.1 L4 0 L1.1 1.1 L0 4 L-1.1 1.1 L-4 0 L-1.1 -1.1Z" fill="' + glow + '"/></g>';
     // col / foulard
     o += '<path d="M86 70 Q100 80 114 70 L116 80 Q100 90 84 80 Z" fill="' + cape + '"' + sw + '/>';
     // bras gauche (main ouverte ou bouclier)
     o += '<path d="M78 78 Q66 82 64 100 L60 118 L71 121 L75 103 Q81 92 84 86 Z" fill="' + armor + '"' + sw + '/>';
     o += '<path d="M60 116 L71 120 L69 142 L58 140 Z" fill="' + armorD + '"' + sw + '/>';
-    if (r >= 4) o += '<path d="M46 118 L72 122 L72 150 Q70 170 58 182 Q46 170 43 150 Z" fill="' + armorD + '"' + sw + '/><path d="M58 128 L66 148 L58 168 L50 148 Z" fill="' + trim + '" opacity=".9"/><circle cx="58" cy="148" r="4" fill="' + glow + '"/>';
+    if (VO === 'voleur' && r >= 2) o += '<g transform="translate(63,150) rotate(195) scale(.75)">' + dagger(Math.max(0, cb - 2)) + '</g>';
+    if (VO === 'sorcier' && r >= 3) o += '<g' + A('petbob') + '><circle cx="50" cy="150" r="7" fill="' + glow + '" stroke="' + OL + '" stroke-width="1.6"/><circle cx="48" cy="148" r="2.4" fill="#fff"/></g>';
+    if (VO === 'demoniste' && r >= 2) o += '<g' + A('petbob') + '><g transform="translate(46,146) rotate(-12)"><rect x="-10" y="-13" width="20" height="26" rx="2" fill="#3a1a4a"' + sw + '/><path d="M8 -11 V11" stroke="#e8dcc8" stroke-width="2"/><circle cx="-1" cy="0" r="5" fill="none" stroke="' + glow + '" stroke-width="1.4"/></g><path class="flick2" d="' + flameP(46, 130, 16, 5) + '" fill="' + glow + '" opacity=".75"/></g>';
+    if (r >= 4 && VO === 'guerrier') o += '<path d="M46 118 L72 122 L72 150 Q70 170 58 182 Q46 170 43 150 Z" fill="' + armorD + '"' + sw + '/><path d="M58 128 L66 148 L58 168 L50 148 Z" fill="' + trim + '" opacity=".9"/><circle cx="58" cy="148" r="4" fill="' + glow + '"/>';
     else o += '<path d="M58 140 L69 142 L70 150 Q66 156 60 152 Q56 148 58 140 Z" fill="' + skin + '"' + sw + '/>';
-    if (r >= 3) o += '<path d="M66 82 Q74 68 92 74 L88 90 Q76 92 68 90 Z" fill="' + armorL + '" stroke="' + trim + '" stroke-width="2" stroke-linejoin="round"/>';
+    if (r >= 3 && !robe) o += '<path d="M66 82 Q74 68 92 74 L88 90 Q76 92 68 90 Z" fill="' + armorL + '" stroke="' + trim + '" stroke-width="2" stroke-linejoin="round"/>';
     // tête
     o += '<rect x="94" y="56" width="12" height="18" fill="' + skinS + '"/>';
     o += '<path d="M82 36 Q83 21 100 21 Q117 21 118 36 L117 48 Q114 59 100 65 Q86 59 83 48 Z" fill="' + skin + '"' + sw + '/>';
@@ -1380,17 +1507,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     o += '<path d="M78 38 Q73 56 80 74 L84 52 Z M122 38 Q127 56 120 74 L116 52 Z" fill="' + hair + '"' + sw + '/>';
     o += '<path d="M86 22 Q100 16 114 22" stroke="' + hairL + '" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/></g>';
     // accessoire de tête
-    o += helmet(peasant ? 0 : cosmic && cb === 0 ? 5 : cb);
+    o += VO !== 'guerrier' ? voieHelmet(cb) : helmet(peasant ? 0 : cosmic && cb === 0 ? 5 : cb);
     if (gHelm) o += '<path d="M126 34 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z" fill="' + RAR[gHelm.rar].c + '"' + sw + '/>';
     if (r >= 12 || cosmic) o += '<ellipse cx="100" cy="-2" rx="18" ry="4" fill="none" stroke="' + glow + '" stroke-width="2.5"/>';
     if (cosmic) o += '<g style="filter:drop-shadow(0 0 3px ' + glow + ')"><ellipse cx="100" cy="30" rx="44" ry="9" fill="none" stroke="' + trim + '" stroke-width="1.2" stroke-dasharray="3 5"' + A('rune') + '/></g>';
     // bras droit et arme
     o += '<path d="M122 78 Q134 82 136 100 L140 116 L129 120 L125 102 Q119 92 116 86 Z" fill="' + armor + '"' + sw + '/>';
-    if (r >= 3) o += '<path d="M134 82 Q126 68 108 74 L112 90 Q124 92 132 90 Z" fill="' + armorL + '" stroke="' + trim + '" stroke-width="2" stroke-linejoin="round"/>';
-    if (cb === 7) o += mirror('<path d="M62 92 Q56 66 80 62 Q96 64 96 76 L90 92 Q74 98 62 92 Z" fill="' + armor + '" stroke="' + trim + '" stroke-width="2.2" stroke-linejoin="round"/><path d="M66 86 Q72 72 88 70" stroke="' + armorL + '" stroke-width="2" fill="none"/>');
-    if (cb === 12) o += mirror('<path d="M70 80 L58 60 L78 74 Z M80 74 L76 54 L88 72 Z" fill="' + steelL + '"' + sw + '/>');
-    if (cb === 3) o += mirror('<path d="M64 84 Q62 72 72 72 Q74 64 84 70 Q90 66 92 76 Q80 82 64 84 Z" fill="#c8a878"' + sw1 + '/>');
-    o += '<g transform="translate(131,138) rotate(16) scale(1.25)">' + weaponFx(wi, wt, glow, animate, uid) + '<g class="wpn"' + (wt > 0 || r >= 6 ? ' style="filter:drop-shadow(0 0 3px ' + glow + ')' + (wt >= 2 ? ' drop-shadow(0 0 8px ' + glow + ')' : '') + '"' : '') + '><g transform="scale(' + (1 + 0.14 * Math.min(wt, 4)) + ',' + (1 + 0.02 * Math.min(wt, 4)) + ')">' + weaponSVG(wi, trim, glow, OL, wt) + weaponGems(wi, wt, glow, OL) + '</g></g></g>';
+    if (r >= 3 && !robe) o += '<path d="M134 82 Q126 68 108 74 L112 90 Q124 92 132 90 Z" fill="' + armorL + '" stroke="' + trim + '" stroke-width="2" stroke-linejoin="round"/>';
+    if (VO === 'demoniste') o += mirror('<path d="M70 84 L60 70 L77 79 Z M79 79 L75 64 L86 77 Z" fill="#e8dcc8"' + sw + '/>');
+    if (VO === 'guerrier' && cb === 7) o += mirror('<path d="M62 92 Q56 66 80 62 Q96 64 96 76 L90 92 Q74 98 62 92 Z" fill="' + armor + '" stroke="' + trim + '" stroke-width="2.2" stroke-linejoin="round"/><path d="M66 86 Q72 72 88 70" stroke="' + armorL + '" stroke-width="2" fill="none"/>');
+    if (VO === 'guerrier' && cb === 12) o += mirror('<path d="M70 80 L58 60 L78 74 Z M80 74 L76 54 L88 72 Z" fill="' + steelL + '"' + sw + '/>');
+    if (VO === 'guerrier' && cb === 3) o += mirror('<path d="M64 84 Q62 72 72 72 Q74 64 84 70 Q90 66 92 76 Q80 82 64 84 Z" fill="#c8a878"' + sw1 + '/>');
+    o += '<g transform="translate(131,138) rotate(16) scale(1.25)">' + weaponFx(wi, wt, glow, animate, uid, VO !== 'guerrier' ? vTip : 0) + '<g class="wpn"' + (wt > 0 || r >= 6 ? ' style="filter:drop-shadow(0 0 3px ' + glow + ')' + (wt >= 2 ? ' drop-shadow(0 0 8px ' + glow + ')' : '') + '"' : '') + '><g transform="scale(' + (1 + 0.14 * Math.min(wt, 4)) + ',' + (1 + 0.02 * Math.min(wt, 4)) + ')">' + (VO !== 'guerrier' ? voieWeapon(cb) + weaponGems(wi, wt, glow, OL, vTip) : weaponSVG(wi, trim, glow, OL, wt) + weaponGems(wi, wt, glow, OL)) + '</g></g></g>';
     o += '<path d="M129 118 L140 116 L137 136 L127 136 Z" fill="' + armorD + '"' + sw + '/>';
     o += '<path d="M126 134 L138 134 Q140 142 133 145 Q125 144 126 134 Z" fill="' + skin + '"' + sw + '/>';
     if (gRing) o += '<circle cx="132" cy="140" r="6.5" fill="none" stroke="' + RAR[gRing.rar].c + '" stroke-width="2.2"/>';
@@ -1764,8 +1892,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     $('bg').innerHTML = bgSVG(S.rank);
     $('biome').textContent = ' · ' + BIOMES[biomeOf(S.rank)] + ' · ' + weaponName(S.rank) + ' (' + ELEM[myElem()].n + ')';
     $('nextSub').textContent = 'Prochaine classe · ' + weaponName(S.rank + 1);
-    var mt = S.mtitle >= 0 && mastLv(S.mtitle) >= 5 ? S.mtitle : -1;
-    if (mt >= 0) $('biome').textContent += ' · Maître ' + BASE[mt];
+    var mt = S.mtitle >= 0 && mastLv(S.mtitle, S.mtv) >= 5 ? S.mtitle : -1;
+    if (mt >= 0) $('biome').textContent += ' · Maître ' + voieNames(S.mtv || 'guerrier')[mt];
     el.hero.style.filter = mt >= 0 ? 'drop-shadow(0 0 10px hsl(' + (mt * 26) + ' 95% 60%)) drop-shadow(0 0 3px hsl(' + (mt * 26) + ' 95% 75%))' : '';
   }
   function setBuy(btn, want, label, room) {
@@ -1825,7 +1953,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     var cs = clsSkill(), rdy = (S.skillReady || 0) - now;
     var anyBuff = ['tap', 'inc', 'dmg', 'crit', 'all'].filter(function (t) { return BUFF[t] && now < BUFF[t].until; })[0];
     if (anyBuff) { el.skillBtn.className = 'frenzy skillb on'; el.skillFill.style.width = (100 * (BUFF[anyBuff].until - now) / (cs.dur ? cs.dur * 1000 : 15000)) + '%'; el.skillTxt.textContent = cs.n + ' : ' + Math.ceil((BUFF[anyBuff].until - now) / 1000) + ' s'; el.skillBtn.disabled = true; }
-    else if (rdy > 0) { el.skillBtn.className = 'frenzy skillb'; el.skillBtn.disabled = true; el.skillFill.style.width = (100 * (1 - rdy / SKILL_CD)) + '%'; el.skillTxt.textContent = cs.n + ' : ' + Math.ceil(rdy / 1000) + ' s'; }
+    else if (rdy > 0) { el.skillBtn.className = 'frenzy skillb'; el.skillBtn.disabled = true; el.skillFill.style.width = (100 * (1 - rdy / skillCd())) + '%'; el.skillTxt.textContent = cs.n + ' : ' + Math.ceil(rdy / 1000) + ' s'; }
     else { el.skillBtn.className = 'frenzy skillb ready'; el.skillBtn.disabled = false; el.skillFill.style.width = '0'; el.skillTxt.textContent = cs.n + (BUFF.guard ? ' (actif)' : ''); }
     el.skillBtn.title = cs.d;
     // évolution
@@ -1852,19 +1980,21 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   }
 
   var CTYPE = { gold: 'Or immédiat', tap: 'Renfort de touchers', dmg: 'Contre les boss', burst: 'Attaque instantanée', guard: 'Défense', inc: 'Revenu', time: 'Contre les boss', crit: 'Critiques', hp: 'Contre les boss', all: 'Ultime' };
-  function clsInfo(r) { var c = CLS[r % 14], cyc = Math.floor(r / 14); var sc = c.t === 'gold' || c.t === 'burst' ? 1 + 0.5 * cyc : c.t === 'crit' || c.t === 'hp' || c.t === 'time' || c.t === 'guard' ? 1 : 1 + 0.2 * cyc; return { n: c.n, t: c.t, dur: c.dur, d: c.d + (cyc && sc > 1 ? ' (puissance ×' + fmt(sc) + ')' : '') }; }
+  function clsInfo(r) { var c = vCls(r), cyc = Math.floor(r / 14); var sc = c.t === 'gold' || c.t === 'burst' ? 1 + 0.5 * cyc : c.t === 'crit' || c.t === 'hp' || c.t === 'time' || c.t === 'guard' ? 1 : 1 + 0.2 * cyc; return { n: c.n, t: c.t, dur: c.dur, d: c.d + (cyc && sc > 1 ? ' (puissance ×' + fmt(sc) + ')' : '') }; }
   function renderClsCard() {
     var box = $('clsCard'); if (!box) return;
     if (S.rank < 1) { box.innerHTML = '<h2>Compétence de classe</h2><p class="note">Chaque classe possède un pouvoir unique, à lancer avec le bouton doré sous le héros. Évolue une première fois pour obtenir le tien.</p>'; return; }
     var c = clsInfo(S.rank), nx = clsInfo(S.rank + 1);
     box.innerHTML = '<div class="sphead"><h2>Compétence de classe</h2><span class="genlbl">' + className(S.rank) + '</span></div>' +
       '<div class="cname">' + c.n + '</div>' +
-      '<div class="ctags">' + '<span class="ctag">' + CTYPE[c.t] + '</span>' + (c.dur ? '<span class="ctag">Dure ' + c.dur + ' s</span>' : '<span class="ctag">Instantané</span>') + '<span class="ctag">Recharge ' + (SKILL_CD / 1000) + ' s</span></div>' +
+      '<div class="ctags">' + '<span class="ctag">' + CTYPE[c.t] + '</span>' + (c.dur ? '<span class="ctag">Dure ' + c.dur + ' s</span>' : '<span class="ctag">Instantané</span>') + '<span class="ctag">Recharge ' + (skillCd() / 1000) + ' s</span></div>' +
       '<p class="cdesc">' + c.d + '.</p>' +
       '<p class="note">Se lance avec le bouton doré sous le héros. Elle change à chaque évolution, et devient plus puissante tous les 14 rangs.</p>' +
       '<div class="cnext">Prochaine classe, ' + className(S.rank + 1) + ' : <b>' + nx.n + '</b>. ' + nx.d + '.</div>' +
       '<div class="cnext"><b>Bénédictions</b></div>' + (boonList() ? '<div class="ctags">' + boonList() + '</div>' : '<p class="note">Aucune pour l’instant : tu en choisis une à chaque évolution.</p>') +
-      (S.boonQ > 0 ? '<button class="mbtn" id="boonBtn">Choisir ma bénédiction (' + S.boonQ + ')</button>' : '');
+      (S.boonQ > 0 ? '<button class="mbtn" id="boonBtn">Choisir ma bénédiction (' + S.boonQ + ')</button>' : '') +
+      (S.voiePend ? '<button class="mbtn" id="voieBtn">Choisir ma Voie</button>' : '<p class="note" style="margin-top:6px">Voie du ' + VOIES[curVoie()].n.toLowerCase() + ' · tu pourras en changer à la prochaine Ascension.</p>');
+    var vbn = $('voieBtn'); if (vbn) vbn.addEventListener('click', voieModal);
     var bb = $('boonBtn'); if (bb) bb.addEventListener('click', boonModal);
   }
   function renderSkills() {
@@ -1909,6 +2039,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     if (crit) v *= abVal(2) || 5;
     var tx = e.clientX - r.left, ty = e.clientY - r.top;
     if (abVal(4) && Math.random() < abVal(4)) { v *= 2; floatText('Rebond ×2', tx, ty - 34, 'slimefx'); }
+    if (curVoie() === 'voleur') {
+      if (Math.random() < 0.08) { v *= 2; floatText('Double frappe !', tx, ty - 46, 'moon'); }
+      if (B && Math.random() < 0.1) { var stl = income(0) * 2; addGold(stl); floatText('+' + fmt(stl) + ' volé', tx, ty - 62, 'lvl'); }
+    }
     if (!B && abVal(1) && Math.random() < abVal(1)) { v *= 10; floatText('Lune ×10', tx, ty - 52, 'moon'); sfx('event'); }
     slashFx(e.clientX - r.left, e.clientY - r.top, crit);
     sfx(crit ? 'crit' : B ? 'hit' : 'tap');
@@ -1975,7 +2109,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   };
   function sfx(n) {
     if (!SND.fx || !audio()) return;
-    if (AC.state === 'suspended') AC.resume();
+    if (AC.state !== 'running') { try { AC.resume(); } catch (e) { } }
     try { SFX[n](); } catch (e) { }
   }
   // Musique : une petite mélodie en boucle par décor, plus rapide pendant les combats
@@ -2005,7 +2139,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     SND.mus = !SND.mus; saveSnd(); setSndUI();
     if (audio()) { if (AC.state === 'suspended') AC.resume(); musGain.gain.setTargetAtTime(SND.mus ? 0.5 * SND.musv / 60 : 0, AC.currentTime, 0.2); }
   });
-  document.addEventListener('pointerdown', function () { if (audio() && AC.state === 'suspended') AC.resume(); }, true);
+  // Déverrouillage du son : sur mobile, seul un vrai geste (fin de toucher, clic) autorise l'audio.
+  var unlocked = false;
+  function unlockAudio() {
+    if (!audio()) return;
+    if (AC.state !== 'running') { try { var pr = AC.resume(); if (pr && pr.then) pr.then(function () { unlocked = AC.state === 'running'; }, function () { }); } catch (e) { } }
+    if (!unlocked) {
+      try { var src = AC.createBufferSource(); src.buffer = AC.createBuffer(1, 1, 22050); src.connect(AC.destination); src.start(0); } catch (e) { }
+      if (AC.state === 'running') unlocked = true;
+    }
+  }
+  ['touchend', 'pointerup', 'click', 'keydown', 'pointerdown'].forEach(function (ev) { document.addEventListener(ev, unlockAudio, { capture: true, passive: true }); });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && AC && AC.state !== 'running') { unlocked = false; unlockAudio(); } });
   setSndUI();
 
   /* ---------- Réglages (qualité, vibration) ---------- */
@@ -2113,13 +2258,58 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     }
   }
   $('mob').addEventListener('pointerdown', function () { if (WV.mob && !B) mobHit(tapVal() * 2, true); });
+  /* ---------- Pouvoirs des Voies ---------- */
+  var arrowT = 0;
+  function voieTick(now, dt) {
+    var v = curVoie();
+    if (v === 'demoniste') {
+      if (B && !dying && !B.wb) { B.hp -= B.max * (B.raid ? 0.0015 : 0.005) * dt; el.bossBox.classList.add('cursed'); }
+      if (!B && WV.mob) mobHit(WV.mob.max * 0.08 * dt, false);
+    }
+    if (v === 'archer' && now - arrowT > 1000 && (B && !dying || (!B && WV.mob))) {
+      arrowT = now;
+      var sr = el.stage.getBoundingClientRect(), src = (B ? el.bhero : el.hero).getBoundingClientRect(), tg = (B ? el.bossBox : $('mob')).getBoundingClientRect();
+      var x0 = src.left - sr.left + src.width * 0.7, y0 = src.top - sr.top + src.height * 0.45, x1 = tg.left - sr.left + tg.width / 2, y1 = tg.top - sr.top + tg.height * 0.45;
+      var dmg = tapVal() * 0.8 * (B ? dmgMult() : 1);
+      arrowFx(x0, y0, x1, y1);
+      setTimeout(function () { if (B && !dying) { B.hp -= dmg; checkBoss(); } else if (!B && WV.mob) mobHit(dmg, true); }, 280);
+    }
+  }
+  function arrowFx(x0, y0, x1, y1) {
+    var d = document.createElement('div'); d.className = 'arrow'; el.stage.appendChild(d);
+    var an = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI;
+    if (!d.animate || reduced) { d.remove(); return; }
+    var a = d.animate([{ transform: 'translate(' + x0 + 'px,' + y0 + 'px) rotate(' + an + 'deg)' }, { transform: 'translate(' + x1 + 'px,' + y1 + 'px) rotate(' + an + 'deg)' }], { duration: 280, easing: 'linear' });
+    a.onfinish = function () { d.remove(); };
+  }
+  /* ---------- Choix de la Voie ---------- */
+  function voieModal() {
+    var h = '<p class="note">' + (S.voieNew ? 'Nouveau : tu peux maintenant suivre une autre Voie que celle du guerrier. Ce choix change tes classes, ton apparence, tes armes, tes compétences et ton style de jeu. Tu pourras en changer à chaque Ascension.' : 'Choisis la Voie de ton héros pour cette génération. Tu pourras en changer à la prochaine Ascension.') + '</p>';
+    VORD.forEach(function (k) {
+      var V = VOIES[k], un = voieUnl(k);
+      h += '<button class="door voie' + (k === S.voie ? ' cur' : '') + '" data-voie="' + k + '"' + (un ? '' : ' disabled') + '><i>' + V.ic + '</i><b>' + V.n + (k === S.voie ? ' · actuelle' : '') + '</b><span>' + (un ? V.d : voieLock(k)) + '</span></button>';
+    });
+    openModal('Choisis ta Voie', h);
+    mBody.querySelectorAll('[data-voie]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.getAttribute('data-voie'); if (!voieUnl(k)) return;
+        S.voie = k; S.voiePend = false; S.voieNew = false;
+        BUFF.tap = BUFF.inc = BUFF.dmg = BUFF.crit = BUFF.all = null;
+        closeModal(); renderHero(); renderSkills(); restart(el.hero, 'pop'); bigText('Voie du ' + VOIES[k].n + ' !', 'gold'); sfx('evolve');
+        toast('Tu suis désormais la Voie du ' + VOIES[k].n.toLowerCase() + ' : tu es ' + className(S.rank));
+        ui(); save();
+        if (S.boonQ > 0 || S.boonOffer) setTimeout(function () { if (modal.hidden && !B) boonModal(); }, 900);
+      });
+    });
+  }
+  function voieCheck() { if (S.voiePend && S.rank >= 1 && modal.hidden && !B && !dying) { voieModal(); return true; } return false; }
   /* ---------- Points faibles ---------- */
   var weakEl = null, weakTimer = 0;
   function weakClear() { if (weakEl) { weakEl.remove(); weakEl = null; } clearTimeout(weakTimer); }
   function weakTick(now) {
     if (!B || dying || weakEl || el.bossBox.hidden || now < (B.wpNext || 0)) return;
     var life = Math.max(900, 1500 - 15 * S.rank);
-    B.wpNext = now + (life + 2200 + Math.random() * 2600) * (B.raidPh === 3 ? 0.55 : 1);
+    B.wpNext = now + (life + 2200 + Math.random() * 2600) * (B.raidPh === 3 ? 0.55 : 1) * (curVoie() === 'archer' ? 0.75 : 1);
     var sr = el.stage.getBoundingClientRect(), br = el.bossBox.getBoundingClientRect();
     var x = br.left - sr.left + br.width * (0.22 + Math.random() * 0.56), y = br.top - sr.top + br.height * (0.2 + Math.random() * 0.55);
     weakEl = document.createElement('button'); weakEl.className = 'weak'; weakEl.setAttribute('aria-label', 'Point faible');
@@ -2128,7 +2318,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     weakEl.addEventListener('pointerdown', function (e) {
       e.stopPropagation(); e.preventDefault();
       if (!B) { weakClear(); return; }
-      var v = tapVal() * dmgMult() * 12 * (1 + BV('faible')) * (1 + GB.weak);
+      var v = tapVal() * dmgMult() * 5 * (1 + BV('faible')) * (1 + GB.weak) * (curVoie() === 'archer' ? 1.5 : 1);
       B.hp -= v; S.st.weak = (S.st.weak || 0) + 1;
       floater(fmt(v), x, y, true, true); bigText('Point faible !', 'gold'); sfx('crit'); shake();
       fxBurst(x, y, true, 24); restart(el.bossBox, 'hit');
@@ -2171,7 +2361,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   }
   function cheer() { el.hero.classList.remove('win'); void el.hero.offsetWidth; el.hero.classList.add('win'); }
   function endFight() {
-    B = null; hideWarn(); ubClear(); weakClear(); minionClear(); el.bossBox.classList.remove('shielded', 'rage');
+    B = null; hideWarn(); ubClear(); weakClear(); minionClear(); el.bossBox.classList.remove('shielded', 'rage', 'cursed');
     el.hero.hidden = false; el.bossBox.hidden = true; el.bhero.hidden = true; el.hud.hidden = true;
     el.hint.textContent = 'Touche le héros';
     el.stage.classList.remove('boss'); el.stage.classList.remove('abyssal');
@@ -2224,9 +2414,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function evolve(bossName, chest) {
     var wasUnique = isUnique(S.rank);
     hwCandy(10, el.stage.clientWidth / 2, el.stage.clientHeight * 0.4);
-    var mi = S.rank % 14, ml0 = mastLv(mi);
-    S.mast[mi] = (S.mast[mi] || 0) + 1 + Math.floor(S.rank / 14);
-    if (mastUnl() && mastLv(mi) > ml0) setTimeout(function () { toast('Maîtrise ' + BASE[mi] + ' : niveau ' + mastLv(mi) + (mastLv(mi) === 5 ? ' · titre et aura débloqués !' : '')); }, 3400);
+    var mi = S.rank % 14, ml0 = mastLv(mi), ma = mastArr(), mvn = voieNames(curVoie())[mi];
+    ma[mi] = (ma[mi] || 0) + 1 + Math.floor(S.rank / 14);
+    if (mastUnl() && mastLv(mi) > ml0) setTimeout(function () { toast('Maîtrise ' + mvn + ' : niveau ' + mastLv(mi) + (mastLv(mi) === 5 ? ' · titre et aura débloqués !' : '')); }, 3400);
     S.rank += 1; S.level = 1; S.gold = 0; addGold(chest); S.miniDone = 0;
     if (wasUnique) { S.st.ub = (S.st.ub || 0) + 1; setTimeout(function () { giveEgg(true, false, 2); }, 3600); setTimeout(function () { giveItem(true, 2); }, 4800); }
     var gain = evoGain(S.rank);
@@ -2234,7 +2424,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     if (S.rank % 5 === 0) setTimeout(function () { giveEgg(true); }, 1500);
     setTimeout(function () { giveItem(true); }, 2600);
     S.boonQ = (S.boonQ || 0) + 1;
-    setTimeout(function () { if (modal.hidden) boonModal(); }, 2200);
+    setTimeout(function () { if (!voieCheck() && modal.hidden) boonModal(); }, 2200);
     recalc(); renderSkills(); morphHero();
     toast(bossName + ' vaincu ! Tu deviens ' + className(S.rank) + ' · nouvelle compétence : ' + skillInfo(S.rank).name);
     ui(); save();
@@ -2355,7 +2545,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       return;
     }
     clearTimeout(ascTimer); el.ascBtn.classList.remove('arm');
-    S.souls += g; S.soulsTotal += g; S.gen += 1; S.genMax = Math.max(S.genMax || 1, S.gen);
+    S.souls += g; S.soulsTotal += g; S.gen += 1; S.genMax = Math.max(S.genMax || 1, S.gen); S.voiePend = true;
+    setTimeout(voieCheck, 2500);
     setTimeout(function () { checkStory(true); }, 600);
     var start = rl('her');
     S.gold = 0; S.level = 1; S.rank = start; S.sp = 2 * start; S.skills = {}; S.boons = {}; S.boonQ = start; S.boonOffer = null; S.miniDone = 0; S.ev = null; S.frenzyUntil = 0; S.frenzyReady = 0;
@@ -2544,7 +2735,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     for (var k in P) P[k] = 0;
     for (var i = 0; i < 2; i++) { var p = equipped(i); if (p) P[SPECIES[p.sp].k] += petVal(p); }
   }
-  function dmgMult() { return (1 + P.dmg) * (B && B.stunUntil > Date.now() ? 2 : 1) * buffM('dmg') * buffM('all') * (1 + GB.dmg) * elemMult() * (1 + V('forge')) * ubMult() * (1 + BV('dmg') + BV('all')) * (B && B.dg && S.dg ? S.dg.pow : 1) * (1 + GB.all) * (B && B.raidShield ? 0.1 : 1); }
+  function dmgMult() { return (1 + P.dmg) * (B && B.stunUntil > Date.now() ? 2 : 1) * buffM('dmg') * buffM('all') * (1 + GB.dmg) * elemMult() * (1 + V('forge')) * ubMult() * (1 + BV('dmg') + BV('all')) * (B && B.dg && S.dg ? S.dg.pow : 1) * (1 + GB.all) * (B && B.raidShield ? 0.1 : 1) * (B && curVoie() === 'guerrier' ? 1.2 : 1); }
   function feedCost(p) { return Math.max(300, income(0) * 60) * Math.pow(1.2, p.lv - 1); }
 
   function eggSVG(rar, prog, hw) {
@@ -2790,12 +2981,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   var BUFF = { tap: null, inc: null, dmg: null, crit: null, all: null, guard: false };
   var SKILL_CD = 60000;
   function buffM(t) { var b = BUFF[t]; return b && Date.now() < b.until ? b.m : (t === 'crit' ? 0 : 1); }
-  function clsSkill() { var c = CLS[S.rank % 14], cyc = Math.floor(S.rank / 14); var sc = c.t === 'gold' || c.t === 'burst' ? 1 + 0.5 * cyc : c.t === 'crit' || c.t === 'hp' || c.t === 'time' || c.t === 'guard' ? 1 : 1 + 0.2 * cyc; return { n: c.n, t: c.t, k: c.k * sc, dur: c.dur, d: c.d + (cyc && sc > 1 ? ' (puissance ×' + fmt(sc) + ')' : '') }; }
+  function vCls(r) { var c = CLS[r % 14], v = curVoie(); if (v === 'guerrier') return c; var o = {}; for (var k in c) o[k] = c[k]; o.n = VOIES[v].skills[r % 14]; if (v === 'sorcier' && ['gold', 'burst', 'hp', 'time'].indexOf(c.t) >= 0) { o.k = c.k * 1.5; o.d = c.d + ' · +50 % (Sorcier)'; } return o; }
+  function skillCd() { return curVoie() === 'sorcier' ? 40000 : SKILL_CD; }
+  function clsSkill() { var c = vCls(S.rank), cyc = Math.floor(S.rank / 14); var sc = c.t === 'gold' || c.t === 'burst' ? 1 + 0.5 * cyc : c.t === 'crit' || c.t === 'hp' || c.t === 'time' || c.t === 'guard' ? 1 : 1 + 0.2 * cyc; return { n: c.n, t: c.t, k: c.k * sc, dur: c.dur, d: c.d + (cyc && sc > 1 ? ' (puissance ×' + fmt(sc) + ')' : '') }; }
   function useSkill() {
     var now = Date.now();
     if ((S.skillReady || 0) > now) return;
     var c = clsSkill(), sr = el.stage.getBoundingClientRect();
-    S.skillReady = now + SKILL_CD; S.st.skills = (S.st.skills || 0) + 1;
+    S.skillReady = now + skillCd(); S.st.skills = (S.st.skills || 0) + 1;
     if (c.t === 'gold') { var g = income(0) * c.k; addGold(g); flyCoins(sr.left + sr.width / 2, sr.top + sr.height * 0.5, 12); floatText('+' + fmt(g) + ' or', sr.width / 2, sr.height * 0.3, 'lvl'); }
     else if (c.t === 'burst') { var v = tapVal() * c.k; if (B) { v *= dmgMult(); B.hp -= v; restart(el.bossBox, 'hit'); floater(fmt(v), sr.width / 2, sr.height * 0.45, true, true); } else { addGold(v); floater(fmt(v), sr.width / 2, sr.height * 0.45, true); } }
     else if (c.t === 'guard') { BUFF.guard = true; if (B) B.until += 5000; }
@@ -2942,7 +3135,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     return 1;
   }
   function abyssPen() { return !!(B && B.abyss && elemVs(myElem(), B.el) <= 1); }
-  function elemMult() { return B && B.el != null ? elemVs(myElem(), B.el) * (abyssPen() ? 0.5 : 1) : 1; }
+  function elemMult() { if (!(B && B.el != null)) return 1; var e = elemVs(myElem(), B.el); return e * (e > 1 && curVoie() === 'sorcier' ? 1.15 : 1) * (abyssPen() ? 0.5 : 1); }
   function elemVerdict() { var m = elemMult(); return (m > 1 ? 'efficace ×' + fmt(m) : m < 1 ? 'peu efficace ×' + fmt(m) : 'neutre') + (abyssPen() ? ' (résistance)' : ''); }
 
   /* ---------- Équipement ---------- */
@@ -3234,25 +3427,28 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     }
     var mb = $('mastCard');
     if (!mastUnl()) { mb.innerHTML = '<h2>Maîtrise des classes</h2><p class="note">Débloquée après ta première Ascension. Chaque classe traversée fait progresser sa maîtrise.</p>'; return; }
-    h = '<div class="sphead"><h2>Maîtrise des classes</h2><span class="genlbl">+' + Math.round((mastMult() - 1) * 100) + ' %</span></div><p class="note">Chaque fois que tu quittes une classe, sa maîtrise progresse (davantage aux paliers Majeur, Suprême…). Chaque étoile donne +2 % sur l’or et les touchers. À 5 étoiles, tu débloques un titre et une aura : touche la classe pour les porter.</p><div class="mgrid">';
+    h = '<div class="sphead"><h2>Maîtrise des classes</h2><span class="genlbl">+' + Math.round((mastMult() - 1) * 100) + ' %</span></div><p class="note">Chaque Voie a ses 14 classes à maîtriser. Chaque fois que tu quittes une classe, sa maîtrise progresse (davantage aux paliers Majeur, Suprême…). Chaque étoile donne +2 % sur l’or et les touchers. À 5 étoiles, tu débloques un titre et une aura : touche la classe pour les porter.</p><div class="mgrid">';
+    var mv = mastView || curVoie();
+    h = h.replace('<div class="mgrid">', '<div class="segs vsegs">' + VORD.map(function (k) { return '<button class="seg' + (k === mv ? ' on' : '') + '" data-mview="' + k + '"' + (voieUnl(k) ? '' : ' disabled') + '>' + VOIES[k].ic + '<br><small>' + VOIES[k].n + '</small></button>'; }).join('') + '</div><div class="mgrid">');
     for (var i = 0; i < 14; i++) {
-      var l = mastLv(i), v = S.mast[i] || 0, nx = l < 5 ? MT[l] : 0, on = S.mtitle === i;
-      h += '<button class="mcell' + (l >= 5 ? ' max' : '') + (on ? ' on' : '') + '" data-mast="' + i + '" style="--mh:' + (i * 26) + '"><b>' + BASE[i] + '</b><span class="stars">' + '★★★★★'.slice(0, l) + '<i>' + '★★★★★'.slice(0, 5 - l) + '</i></span><span>' + (l >= 5 ? (on ? 'Titre porté' : 'Maître') : v + ' / ' + nx) + '</span></button>';
+      var l = mastLv(i, mv), v = mastArr(mv)[i] || 0, nx = l < 5 ? MT[l] : 0, on = S.mtitle === i && S.mtv === mv;
+      h += '<button class="mcell' + (l >= 5 ? ' max' : '') + (on ? ' on' : '') + '" data-mast="' + i + '" style="--mh:' + (i * 26) + '"><b>' + voieNames(mv)[i] + '</b><span class="stars">' + '★★★★★'.slice(0, l) + '<i>' + '★★★★★'.slice(0, 5 - l) + '</i></span><span>' + (l >= 5 ? (on ? 'Titre porté' : 'Maître') : v + ' / ' + nx) + '</span></button>';
     }
     mb.innerHTML = h + '</div>';
   }
   $('mastCard').addEventListener('click', function (e) {
+    var vb = e.target.closest('button[data-mview]'); if (vb) { mastView = vb.getAttribute('data-mview'); renderEndgame(); return; }
     var b = e.target.closest('button[data-mast]'); if (!b) return;
-    var i = +b.getAttribute('data-mast');
-    if (mastLv(i) < 5) { toast('Atteins 5 étoiles de maîtrise pour porter ce titre.'); return; }
-    S.mtitle = S.mtitle === i ? -1 : i; sfx('ui'); renderHero(); renderEndgame(); save();
+    var i = +b.getAttribute('data-mast'), mv = mastView || curVoie();
+    if (mastLv(i, mv) < 5) { toast('Atteins 5 étoiles de maîtrise pour porter ce titre.'); return; }
+    if (S.mtitle === i && S.mtv === mv) S.mtitle = -1; else { S.mtitle = i; S.mtv = mv; } sfx('ui'); renderHero(); renderEndgame(); save();
   });
   function doTranscend() {
     if (S.gen < 5 || B) return;
     var g = essFor(); if (g < 1) return;
     if (!trArm) { trArm = true; renderEndgame(); clearTimeout(trTimer); trTimer = setTimeout(function () { trArm = false; if (currentTab === 'gallery') renderEndgame(); }, 4000); return; }
     trArm = false; clearTimeout(trTimer);
-    S.ess = (S.ess || 0) + g; S.tr = (S.tr || 0) + 1; S.genMax = Math.max(S.genMax || 1, S.gen);
+    S.ess = (S.ess || 0) + g; S.tr = (S.tr || 0) + 1; S.voiePend = true; S.genMax = Math.max(S.genMax || 1, S.gen);
     S.gen = 1; S.souls = 0; S.soulsTotal = 0;
     var keep = { auto: rl('auto'), nid: rl('nid') }; S.relics = {}; if (keep.auto) S.relics.auto = keep.auto; if (keep.nid) S.relics.nid = keep.nid;
     S.gold = 0; S.level = 1; S.rank = 0; S.sp = 0; S.skills = {}; S.boons = {}; S.boonQ = 0; S.boonOffer = null; S.miniDone = 0; S.ev = null; S.frenzyUntil = 0; S.frenzyReady = 0;
@@ -3860,6 +4056,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     weakTick(now);
     waveTick(now, dt);
     raidTick(now, dt);
+    voieTick(now, dt);
     if (currentTab === 'pets' && S.exp.length && Math.floor(now / 1000) !== Math.floor((now - dt * 1000) / 1000)) renderExp();
     if (B && B.wb && S.wbs) S.wbs.hp = Math.max(1, B.hp);
     checkBoss();
@@ -3891,9 +4088,10 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     delete S.balNote; save();
     setTimeout(function () {
       openModal('Mise à jour de la lignée', '<p class="note">Le jeu devient plus exigeant : chaque rang coûte davantage, et les boss de fin résistent mieux si ton héros n’est pas assez puissant.</p><p class="note">En échange, deux nouveautés :</p><p class="note"><b>Points faibles</b> : pendant les combats, des cibles dorées apparaissent sur le boss. Touche-les vite pour des dégâts énormes.</p><p class="note"><b>Bénédictions</b> : à chaque évolution, choisis un bonus parmi trois. Pour rattraper tes ' + S.boonQ + ' rangs déjà gagnés, tu as ' + S.boonQ + ' bénédictions à choisir.</p><button class="mbtn" id="balGo">Choisir mes bénédictions</button>');
-      $('balGo').addEventListener('click', function () { closeModal(); setTimeout(boonModal, 250); });
+      $('balGo').addEventListener('click', function () { closeModal(); setTimeout(function () { if (!voieCheck()) boonModal(); }, 250); });
     }, 1200);
-  } else if (S.boonQ > 0 || S.boonOffer) setTimeout(function () { if (modal.hidden && !B) boonModal(); }, 1500);
+  } else if (S.voiePend && S.rank >= 1) setTimeout(voieCheck, 1300);
+  else if (S.boonQ > 0 || S.boonOffer) setTimeout(function () { if (modal.hidden && !B) boonModal(); }, 1500);
   if (starter) setTimeout(function () { if (S.eggs.length && S.eggs[0].prog < 5) toast('Un œuf t’attend ! Touche le héros pour le faire éclore'); }, 1200);
 })();
 </script>
@@ -3915,7 +4113,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       }).catch(function () { });
     });
   }
-  var APPV = '7';
+  var APPV = '8';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
