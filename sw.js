@@ -1,11 +1,11 @@
 /* Lignée Infinie : fonctionnement hors connexion.
    Après chaque mise à jour du jeu, change le numéro de VERSION ci-dessous. */
-const VERSION = 'lignee-v3';
+const VERSION = 'lignee-v4';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -21,7 +21,7 @@ self.addEventListener('fetch', (event) => {
   // Page du jeu : réseau d'abord (pour recevoir les mises à jour), sinon la copie en cache.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('index.html', copy)); return res; })
+      fetch(req, { cache: 'no-store' }).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('index.html', copy)); return res; })
         .catch(() => caches.match('index.html'))
     );
     return;

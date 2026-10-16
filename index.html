@@ -3347,8 +3347,20 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
 (function () {
   'use strict';
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () { }); });
+    var hadCtrl = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!hadCtrl || reloaded) return; reloaded = true;
+      try { window.dispatchEvent(new Event('pagehide')); } catch (e) { }
+      setTimeout(function () { location.reload(); }, 300);
+    });
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+        reg.update();
+        document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') reg.update(); });
+      }).catch(function () { });
+    });
   }
+  var APPV = '4';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -3356,7 +3368,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   window.addEventListener('appinstalled', function () { deferred = null; });
   window.__fillInstall = function () {
     var box = document.getElementById('installBox');
-    if (!box || standalone) return;
+    if (!box) return;
+    if (standalone) { box.innerHTML = '<p class="note">Appli installée · version ' + APPV + '</p>'; box.hidden = false; return; }
     if (deferred) {
       box.innerHTML = '<h2>Installer l’appli</h2><p class="note">Ajoute Lignée Infinie à ton écran d’accueil : plein écran, hors connexion, sans barre de navigateur.</p><button class="mbtn" id="instBtn">Installer</button>';
       box.hidden = false;
