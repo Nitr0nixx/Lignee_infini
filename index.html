@@ -3369,16 +3369,18 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   window.__fillInstall = function () {
     var box = document.getElementById('installBox');
     if (!box) return;
-    if (standalone) { box.innerHTML = '<p class="note">Appli installée · version ' + APPV + '</p>'; box.hidden = false; return; }
+    var vl = '<p class="note">Lignée Infinie · version ' + APPV + '</p>';
+    if (standalone) { box.innerHTML = vl; box.hidden = false; return; }
+    box.innerHTML = vl; box.hidden = false;
     if (deferred) {
-      box.innerHTML = '<h2>Installer l’appli</h2><p class="note">Ajoute Lignée Infinie à ton écran d’accueil : plein écran, hors connexion, sans barre de navigateur.</p><button class="mbtn" id="instBtn">Installer</button>';
+      box.innerHTML = '<h2>Installer l’appli</h2><p class="note">Ajoute Lignée Infinie à ton écran d’accueil : plein écran, hors connexion, sans barre de navigateur.</p><button class="mbtn" id="instBtn">Installer</button>' + vl;
       box.hidden = false;
       document.getElementById('instBtn').addEventListener('click', function () {
         var d = deferred; deferred = null; d.prompt();
         d.userChoice.then(function (c) { box.innerHTML = c.outcome === 'accepted' ? '<h2>Installée</h2><p class="note">Retrouve le jeu sur ton écran d’accueil.</p>' : '<h2>Installer l’appli</h2><p class="note">Tu pourras l’installer plus tard depuis le menu de ton navigateur.</p>'; });
       });
     } else if (ios) {
-      box.innerHTML = '<h2>Installer l’appli</h2><p class="note">Dans Safari, touche le bouton Partager puis « Sur l’écran d’accueil ».</p>';
+      box.innerHTML = '<h2>Installer l’appli</h2><p class="note">Dans Safari, touche le bouton Partager puis « Sur l’écran d’accueil ».</p>' + vl;
       box.hidden = false;
     }
   };
