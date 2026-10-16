@@ -137,6 +137,12 @@ button:disabled { cursor: default; }
 .stats dt { color: var(--muted); }
 .stats dd { margin: 0; text-align: right; font-weight: 700; overflow-wrap: anywhere; }
 
+.ccard .ctags { display: flex; flex-wrap: wrap; gap: 6px; }
+.ccard .ctag { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--surface2); color: var(--accent); }
+.ccard .cname { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--gold); margin-top: 4px; }
+.ccard .cdesc { font-size: 14px; margin: 4px 0 2px; }
+.ccard .cnext { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+.skill .x { grid-column: 1; font-size: 13px; color: var(--muted); font-style: italic; }
 .sphead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .sp { font-family: var(--display); font-weight: 800; font-size: 28px; color: var(--accent); }
 .note { font-size: 14px; color: var(--muted); margin: 0; }
@@ -646,6 +652,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       <p class="note">Les boss de fin lâchent toujours un objet, les mini-boss une fois sur cinq. Démantèle les objets en trop pour gagner des éclats et améliorer les autres.</p>
     </div>
     <div class="list" id="itemList"></div>
+    <div class="card ccard" id="clsCard"></div>
     <div class="card">
       <div class="sphead"><h2>Points de compétence</h2><span class="sp" id="sp">0</span></div>
       <p class="note">Chaque évolution débloque une nouvelle compétence et rapporte 2 points (5 tous les 5 rangs). Les compétences restent à vie.</p>
@@ -776,6 +783,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     { k: 'rab', name: 'Forge économe', per: 0.02, desc: function (v) { return '−' + pct(v) + ' sur le coût des niveaux'; } },
     { k: 'fre', name: 'Fureur ancestrale', per: 1, desc: function (v) { return '+' + (Math.round(v * 10) / 10).toString().replace('.', ',') + ' s de Frénésie'; } }
   ];
+  var TXT = {
+    or: 'Augmente l’or que ton héros gagne tout seul chaque seconde, même quand tu ne touches pas l’écran.',
+    clic: 'Augmente l’or rapporté par chaque toucher sur le héros.',
+    crit: 'Donne une chance que ton toucher soit critique : il rapporte alors 5 fois plus.',
+    off: 'Augmente l’or récolté pendant ton absence, quand le jeu est fermé.',
+    rab: 'Fait baisser le prix des niveaux à acheter.',
+    fre: 'Allonge la durée de la Frénésie, pendant laquelle tes touchers sont décuplés.'
+  };
   function skillInfo(i) {
     var t = TYPES[(i - 1) % 6], tier = Math.floor((i - 1) / 6) + 1;
     return { t: t, tier: tier, w: 1 + 0.2 * (tier - 1), name: t.name + (tier > 1 ? ' ' + roman(tier) : '') };
@@ -898,28 +913,34 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function hueOf(r) { return (r * 37 + 210 + (S.gen - 1) * 53) % 360; }
   /* ---------- Armes par classe ---------- */
   var WEAPONS = ['Fourche', 'Épée courte', 'Lance', 'Hache double', 'Épée longue', 'Marteau sacré', 'Espadon', 'Hallebarde', 'Masse étoilée', 'Épée-croix', 'Rapière', 'Épée royale', 'Cimeterre', 'Lame légendaire'];
-  function weaponSVG(i, trim, glow, OL) {
-    var st = '#eef2f8', wood = '#8a5c36';
+  var WMAT = ['', ' d’or', ' de cristal', ' d’obsidienne', ' céleste', ' des étoiles'];
+  function weaponName(r) { var t = Math.floor(r / 14); return WEAPONS[r % 14] + (t ? WMAT[1 + (t - 1) % 5] : ''); }
+  var WTIP = [-94, -54, -130, -70, -78, -94, -114, -130, -86, -92, -104, -98, -92, -116];
+  function weaponSVG(i, trim, glow, OL, t) {
+    t = t || 0; var tm = t ? 1 + (t - 1) % 5 : 0;
+    var st = ['#eef2f8', '#f7e3a4', '#d2f1ff', '#3a2a4e', '#fff6fd', '#e8f0ff'][tm], wood = ['#8a5c36', '#3e2616', '#2a3048', '#1a1424', '#d8c4f0', '#2a2a5a'][tm];
+    var mt = ['#a8b2c2', '#e3b24c', '#9ad8f4', '#5a4670', '#ffd6f0', '#b8c8ff'][tm], edge = t ? glow : '#b8c2d2';
+    if (t) trim = tm === 3 ? glow : '#ffd84a';
     var sw = ' stroke="' + OL + '" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"';
     var s2 = ' stroke="' + OL + '" stroke-width="2.5" stroke-linejoin="round"';
     var grip = '<rect x="-3" y="-4" width="6" height="14" rx="2" fill="#6b4a2e"' + s2 + '/>';
     switch (i) {
-      case 0: return '<rect x="-2.5" y="-74" width="5" height="86" rx="2" fill="' + wood + '"' + sw + '/><path d="M-10 -74 V-90 M0 -74 V-94 M10 -74 V-90 M-10 -74 H10" stroke="' + OL + '" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M-10 -74 V-90 M0 -74 V-94 M10 -74 V-90 M-10 -74 H10" stroke="#d4dae4" stroke-width="3" fill="none" stroke-linecap="round"/>';
-      case 1: return '<path d="M-5 -8 L-4 -44 L0 -54 L4 -44 L5 -8 Z" fill="' + st + '"' + sw + '/><path d="M0 -46 V-12" stroke="#b8c2d2" stroke-width="2"/><rect x="-11" y="-10" width="22" height="6" rx="3" fill="#a8b2c2"' + s2 + '/>' + grip;
+      case 0: return '<rect x="-2.5" y="-74" width="5" height="86" rx="2" fill="' + wood + '"' + sw + '/><path d="M-10 -74 V-90 M0 -74 V-94 M10 -74 V-90 M-10 -74 H10" stroke="' + OL + '" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M-10 -74 V-90 M0 -74 V-94 M10 -74 V-90 M-10 -74 H10" stroke="' + st + '" stroke-width="3" fill="none" stroke-linecap="round"/>';
+      case 1: return '<path d="M-5 -8 L-4 -44 L0 -54 L4 -44 L5 -8 Z" fill="' + st + '"' + sw + '/><path d="M0 -46 V-12" stroke="' + edge + '" stroke-width="2"/><rect x="-11" y="-10" width="22" height="6" rx="3" fill="' + mt + '"' + s2 + '/>' + grip;
       case 2: return '<rect x="-2.5" y="-100" width="5" height="112" rx="2" fill="' + wood + '"' + sw + '/><path d="M0 -130 Q11 -112 6 -100 L-6 -100 Q-11 -112 0 -130 Z" fill="' + st + '"' + sw + '/><path d="M-6 -99 L6 -99 L4 -91 L-4 -91 Z" fill="#d84a3c"' + s2 + '/><path d="M3 -96 Q16 -90 12 -78" stroke="#d84a3c" stroke-width="3" fill="none" stroke-linecap="round"/>';
-      case 3: return '<rect x="-3" y="-66" width="6" height="78" rx="2" fill="' + wood + '"' + sw + '/><path d="M3 -64 Q32 -70 30 -36 Q22 -46 3 -42 Z" fill="#dfe5ee"' + sw + '/><path d="M-3 -64 Q-32 -70 -30 -36 Q-22 -46 -3 -42 Z" fill="#dfe5ee"' + sw + '/>';
-      case 4: return '<path d="M-5 -8 L-4 -66 L0 -78 L4 -66 L5 -8 Z" fill="' + st + '"' + sw + '/><path d="M0 -70 L0 -12" stroke="#b8c2d2" stroke-width="2"/><rect x="-14" y="-10" width="28" height="6" rx="3" fill="' + trim + '"' + s2 + '/>' + grip;
-      case 5: return '<rect x="-3" y="-70" width="6" height="82" rx="2" fill="' + wood + '"' + sw + '/><rect x="-21" y="-94" width="42" height="26" rx="6" fill="#d8dee8"' + sw + '/><rect x="-5" y="-94" width="10" height="26" fill="' + trim + '"' + s2 + '/><circle cx="0" cy="-81" r="4.5" fill="' + glow + '" stroke="' + OL + '" stroke-width="2"/><path d="M-16 -89 H-9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>';
-      case 6: return '<path d="M-8 -12 L-7 -96 L0 -114 L7 -96 L8 -12 Z" fill="' + st + '"' + sw + '/><path d="M0 -104 V-18" stroke="#b8c2d2" stroke-width="2.5"/><path d="M-22 -16 Q0 -8 22 -16 L20 -6 Q0 0 -20 -6 Z" fill="#a8b2c2"' + s2 + '/><rect x="-3.5" y="-4" width="7" height="18" rx="2" fill="#6b4a2e"' + s2 + '/><circle cx="0" cy="16" r="4" fill="' + trim + '"' + s2 + '/>';
+      case 3: return '<rect x="-3" y="-66" width="6" height="78" rx="2" fill="' + wood + '"' + sw + '/><path d="M3 -64 Q32 -70 30 -36 Q22 -46 3 -42 Z" fill="' + st + '"' + sw + '/><path d="M-3 -64 Q-32 -70 -30 -36 Q-22 -46 -3 -42 Z" fill="' + st + '"' + sw + '/>';
+      case 4: return '<path d="M-5 -8 L-4 -66 L0 -78 L4 -66 L5 -8 Z" fill="' + st + '"' + sw + '/><path d="M0 -70 L0 -12" stroke="' + edge + '" stroke-width="2"/><rect x="-14" y="-10" width="28" height="6" rx="3" fill="' + trim + '"' + s2 + '/>' + grip;
+      case 5: return '<rect x="-3" y="-70" width="6" height="82" rx="2" fill="' + wood + '"' + sw + '/><rect x="-21" y="-94" width="42" height="26" rx="6" fill="' + st + '"' + sw + '/><rect x="-5" y="-94" width="10" height="26" fill="' + trim + '"' + s2 + '/><circle cx="0" cy="-81" r="4.5" fill="' + glow + '" stroke="' + OL + '" stroke-width="2"/><path d="M-16 -89 H-9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>';
+      case 6: return '<path d="M-8 -12 L-7 -96 L0 -114 L7 -96 L8 -12 Z" fill="' + st + '"' + sw + '/><path d="M0 -104 V-18" stroke="' + edge + '" stroke-width="2.5"/><path d="M-22 -16 Q0 -8 22 -16 L20 -6 Q0 0 -20 -6 Z" fill="' + mt + '"' + s2 + '/><rect x="-3.5" y="-4" width="7" height="18" rx="2" fill="#6b4a2e"' + s2 + '/><circle cx="0" cy="16" r="4" fill="' + trim + '"' + s2 + '/>';
       case 7: return '<rect x="-2.5" y="-104" width="5" height="116" rx="2" fill="' + wood + '"' + sw + '/><path d="M0 -130 L5 -104 L-5 -104 Z" fill="' + st + '"' + sw + '/><path d="M2 -102 Q32 -106 30 -76 Q16 -84 2 -80 Z" fill="' + st + '"' + sw + '/><path d="M-2 -98 L-18 -94 L-2 -86 Z" fill="' + st + '"' + sw + '/>';
       case 8:
         var sp = '';
-        for (var k = 0; k < 8; k++) { var a = k * 0.785, cx = Math.cos(a), cy = Math.sin(a); sp += '<path d="M' + (cx * 10 - cy * 5).toFixed(1) + ' ' + (-72 + cy * 10 + cx * 5).toFixed(1) + ' L' + (cx * 22).toFixed(1) + ' ' + (-72 + cy * 22).toFixed(1) + ' L' + (cx * 10 + cy * 5).toFixed(1) + ' ' + (-72 + cy * 10 - cx * 5).toFixed(1) + ' Z" fill="#c9d0dc"' + s2 + '/>'; }
-        return '<rect x="-3" y="-60" width="6" height="72" rx="2" fill="' + wood + '"' + sw + '/>' + sp + '<circle cx="0" cy="-72" r="14" fill="#9aa4b4"' + sw + '/><circle cx="-5" cy="-77" r="4" fill="#fff" opacity=".6"/>';
+        for (var k = 0; k < 8; k++) { var a = k * 0.785, cx = Math.cos(a), cy = Math.sin(a); sp += '<path d="M' + (cx * 10 - cy * 5).toFixed(1) + ' ' + (-72 + cy * 10 + cx * 5).toFixed(1) + ' L' + (cx * 22).toFixed(1) + ' ' + (-72 + cy * 22).toFixed(1) + ' L' + (cx * 10 + cy * 5).toFixed(1) + ' ' + (-72 + cy * 10 - cx * 5).toFixed(1) + ' Z" fill="' + mt + '"' + s2 + '/>'; }
+        return '<rect x="-3" y="-60" width="6" height="72" rx="2" fill="' + wood + '"' + sw + '/>' + sp + '<circle cx="0" cy="-72" r="14" fill="' + st + '"' + sw + '/><circle cx="-5" cy="-77" r="4" fill="#fff" opacity=".6"/>';
       case 9: return '<path d="M-6 -10 L-5 -80 L0 -92 L5 -80 L6 -10 Z" fill="' + st + '"' + sw + '/><path d="M0 -66 V-38 M-7 -56 H7" stroke="' + trim + '" stroke-width="3.5" stroke-linecap="round"/><rect x="-22" y="-12" width="44" height="7" rx="3" fill="' + trim + '"' + s2 + '/>' + grip + '<circle cx="0" cy="13" r="4.5" fill="' + trim + '"' + s2 + '/>';
       case 10: return '<path d="M-2.5 -6 L-1.5 -96 L0 -104 L1.5 -96 L2.5 -6 Z" fill="' + st + '" stroke="' + OL + '" stroke-width="2.5" stroke-linejoin="round"/><path d="M-13 -8 Q-15 8 0 10 Q15 8 13 -8 Q0 -2 -13 -8 Z" fill="' + trim + '"' + s2 + '/>' + grip;
       case 11: return '<path d="M-6 -10 L-5 -86 L0 -98 L5 -86 L6 -10 Z" fill="' + st + '"' + sw + '/><path d="M-3 -82 V-14 M3 -82 V-14" stroke="' + trim + '" stroke-width="1.8"/><path d="M-20 -10 Q-10 -20 0 -13 Q10 -20 20 -10 L17 -3 L-17 -3 Z" fill="' + trim + '"' + s2 + '/><circle cx="0" cy="-8" r="4" fill="#ff5a7a" stroke="' + OL + '" stroke-width="1.8"/>' + grip + '<path d="M-5 14 L-4 8 L0 11 L4 8 L5 14 Z" fill="' + trim + '"' + s2 + '/>';
-      case 12: return '<path d="M-4 -8 Q-12 -52 8 -92 Q18 -60 5 -8 Z" fill="' + st + '"' + sw + '/><path d="M2 -16 Q-4 -50 8 -80" stroke="#b8c2d2" stroke-width="2" fill="none"/><rect x="-13" y="-10" width="26" height="6" rx="3" fill="' + trim + '"' + s2 + '/>' + grip;
+      case 12: return '<path d="M-4 -8 Q-12 -52 8 -92 Q18 -60 5 -8 Z" fill="' + st + '"' + sw + '/><path d="M2 -16 Q-4 -50 8 -80" stroke="' + edge + '" stroke-width="2" fill="none"/><rect x="-13" y="-10" width="26" height="6" rx="3" fill="' + trim + '"' + s2 + '/>' + grip;
       default: return '<path d="M-7 -10 L-6 -98 L0 -116 L6 -98 L7 -10 Z" fill="#fff" stroke="' + glow + '" stroke-width="3.5" stroke-linejoin="round"/><path d="M-2.5 -96 L0 -106 L2.5 -96 L2.5 -16 L-2.5 -16 Z" fill="' + glow + '" opacity=".6"/><path d="M-6 -12 Q-28 -26 -32 -8 Q-18 -10 -6 -4 Z" fill="' + trim + '"' + s2 + '/><path d="M6 -12 Q28 -26 32 -8 Q18 -10 6 -4 Z" fill="' + trim + '"' + s2 + '/><circle cx="0" cy="-8" r="4.5" fill="' + glow + '" stroke="' + OL + '" stroke-width="2"/>' + grip;
     }
   }
@@ -1006,6 +1027,21 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     bend = bend || 0;
     return 'M' + (x - w) + ' ' + base + ' Q' + (x - w * 1.25 + bend * 0.3) + ' ' + (base - hgt * 0.45) + ' ' + (x + bend) + ' ' + (base - hgt) + ' Q' + (x + w * 1.25 + bend * 0.3) + ' ' + (base - hgt * 0.45) + ' ' + (x + w) + ' ' + base + ' Z';
   }
+  function weaponGems(i, t, glow, OL) {
+    if (!t) return '';
+    var tip = WTIP[i], x = '', n = Math.min(t, 3);
+    for (var k = 0; k < n; k++) { var y = (tip * (0.3 + 0.18 * k)).toFixed(1); x += '<path d="M0 ' + (y - 4) + ' L3 ' + y + ' L0 ' + (+y + 4) + ' L-3 ' + y + ' Z" fill="' + glow + '" stroke="' + OL + '" stroke-width="1"/>'; }
+    return x;
+  }
+  function weaponFx(i, t, glow, animate, uid) {
+    if (!t) return '';
+    var tip = WTIP[i] * (1 + 0.02 * Math.min(t, 4)), x = '', A = function (c) { return animate ? ' class="' + c + '"' : ''; };
+    x += '<ellipse cx="0" cy="' + (tip / 2).toFixed(0) + '" rx="' + (10 + 3 * Math.min(t, 4)) + '" ry="' + (-tip / 2 + 10).toFixed(0) + '" fill="' + glow + '" opacity="' + (0.12 + 0.05 * Math.min(t, 4)).toFixed(2) + '"/>';
+    if (t >= 2) for (var k = 0; k < 5; k++) { var y = tip * (0.15 + 0.18 * k); x += '<path' + A(k % 2 ? 'flick2' : 'flick') + ' d="' + flameP((k % 2 ? 5 : -5), y + 10, 22 + k * 2, 6) + '" fill="url(#fl' + uid + ')"/>'; }
+    if (t >= 3) x += '<g style="filter:drop-shadow(0 0 3px ' + glow + ')"><circle cx="0" cy="' + (tip * 0.62).toFixed(0) + '" r="15" fill="none" stroke="' + glow + '" stroke-width="2" stroke-dasharray="6 4"' + A('rune') + '/><circle cx="0" cy="' + (tip * 0.62).toFixed(0) + '" r="9" fill="none" stroke="#fff" stroke-width="1.2" stroke-dasharray="2 3"' + A('rune rev') + '/></g>';
+    if (t >= 4) { var wg = '<path d="M4 -4 Q24 -20 40 -14 Q30 -10 34 -4 Q24 -6 26 2 Q16 -2 4 2 Z" fill="' + glow + '" fill-opacity=".55" stroke="#fff" stroke-width="1.2"/>'; x += wg + '<g transform="scale(-1,1)">' + wg + '</g>'; for (var q = 0; q < 6; q++) x += '<circle' + A('pt') + ' cx="' + ((rnd(q * 7 + t) - 0.5) * 30).toFixed(0) + '" cy="' + (tip * rnd(q * 3 + 1)).toFixed(0) + '" r="1.8" fill="#fff"' + (animate ? ' style="animation-delay:' + (q * 0.4).toFixed(1) + 's"' : '') + '/>'; }
+    return x;
+  }
   function hero2SVG(r, animate, uid, withGear) {
     var h = hueOf(r), peasant = r === 0, OL = '#1c1426';
     var armor = peasant ? '#9a6a42' : 'hsl(' + h + ' 52% 46%)';
@@ -1025,10 +1061,54 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     var irisD = r >= 6 ? 'hsl(' + h + ' 80% 35%)' : peasant ? '#2f4a22' : 'hsl(' + ((h + 200) % 360) + ' 70% 25%)';
     var gArm = withGear && gearItem('armure'), gHelm = withGear && gearItem('casque'), gRing = withGear && gearItem('anneau');
     if (gArm) trim = RAR[gArm.rar].c;
-    var ht = peasant ? 0 : 1 + ((r - 1) % 4);
+    var cb = r % 14, tier = Math.floor(r / 14);
     var hs = peasant ? 3 : (r - 1 + Math.floor((r - 1) / 4)) % 4;
+    var steel = '#bfc8d6', steelL = '#eef2f8', steelD = '#7a8496', RED = '#c83a3a', WHITE = '#f2ecdc', DARK = '#2a2234';
+    var hooded = cb === 9 || cb === 10;
     var A = animate ? function (c) { return ' class="' + c + '"'; } : function () { return ''; };
     var sw = ' stroke="' + OL + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"';
+    var sw1 = ' stroke="' + OL + '" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"';
+    function mirror(x) { return x + '<g transform="translate(200,0) scale(-1,1)">' + x + '</g>'; }
+    function armorDeco(c) {
+      var x = '';
+      if (c === 0) x = '<path d="M92 78 L100 92 L108 78" stroke="' + OL + '" stroke-width="1.6" fill="' + skinS + '"/><path d="M96 96 L104 102 M104 96 L96 102 M96 104 L104 110 M104 104 L96 110" stroke="#3a2416" stroke-width="1.6" stroke-linecap="round"/>';
+      else if (c === 1) x = '<path d="M80 80 L86 78 L120 120 L114 124 Z" fill="#5a3a22"' + sw1 + '/><rect x="96" y="96" width="9" height="9" rx="1.5" fill="none" stroke="' + trim + '" stroke-width="2.2" transform="rotate(40 100 100)"/><path d="M80 104 Q100 110 120 104" stroke="#5a3a22" stroke-width="3" fill="none"/>';
+      else if (c === 2) x = '<path d="M80 90 Q100 86 120 90 M81 102 Q100 98 119 102 M82 114 Q100 110 118 114 M90 80 L91 126 M110 80 L109 126" stroke="' + armorD + '" stroke-width="1.6" stroke-dasharray="3 2.5" fill="none"/>';
+      else if (c === 3) x = '<path d="M78 82 L118 118 L114 124 L76 88 Z" fill="#6a4628"' + sw1 + '/><circle cx="90" cy="94" r="3" fill="' + steelL + '"' + sw1 + '/><circle cx="104" cy="107" r="3" fill="' + steelL + '"' + sw1 + '/><path d="M70 82 Q72 70 80 76 Q84 66 92 74 Q100 64 108 74 Q116 66 120 76 Q128 70 130 82 Q118 90 100 88 Q82 90 70 82 Z" fill="#c8a878"' + sw + '/><path d="M80 80 L84 84 M96 76 L98 82 M110 78 L108 84" stroke="#8a6a44" stroke-width="1.4"/>';
+      else if (c === 4) x = '<path d="M100 78 L100 120" stroke="' + armorL + '" stroke-width="3"/><path d="M100 78 L100 120" stroke="' + OL + '" stroke-width="1" opacity=".5"/><path d="M83 112 Q100 118 117 112 M84 119 Q100 125 116 119" stroke="' + OL + '" stroke-width="1.6" fill="none"/><path d="M86 88 Q100 84 100 84" stroke="#fff" stroke-width="2" opacity=".5" fill="none"/>';
+      else if (c === 5 || c === 8 || c === 9) {
+        var tab = c === 9 ? '#a82c2c' : WHITE, cr = c === 9 ? WHITE : c === 8 ? RED : trim;
+        x = '<path d="M88 79 Q100 76 112 79 L115 182 L100 176 L85 182 Z" fill="' + tab + '"' + sw + '/><path d="M89 170 L111 170" stroke="' + trim + '" stroke-width="2"/>';
+        if (c === 5) { x += '<circle cx="100" cy="100" r="7" fill="' + trim + '"' + sw1 + '/>'; for (var k = 0; k < 8; k++) { var a = k * Math.PI / 4; x += '<path d="M' + (100 + Math.cos(a) * 9).toFixed(1) + ' ' + (100 + Math.sin(a) * 9).toFixed(1) + ' L' + (100 + Math.cos(a) * 13).toFixed(1) + ' ' + (100 + Math.sin(a) * 13).toFixed(1) + '" stroke="' + trim + '" stroke-width="2" stroke-linecap="round"/>'; } }
+        else x += '<path d="M97 86 H103 V96 H111 V102 H103 V118 H97 V102 H89 V96 H97 Z" fill="' + cr + '"' + sw1 + '/>';
+        if (c === 9) x += '<path d="M72 168 Q100 176 128 168" stroke="' + steelD + '" stroke-width="1.4" stroke-dasharray="1.5 2" fill="none"/>';
+      }
+      else if (c === 6) x = '<path d="M78 80 L84 78 L122 116 L118 124 Z" fill="' + cape + '"' + sw1 + '/><circle cx="100" cy="100" r="6.5" fill="' + trim + '"' + sw1 + '/><path d="M100 96 L101.4 99 L104.5 99.2 L102 101.2 L103 104.2 L100 102.4 L97 104.2 L98 101.2 L95.5 99.2 L98.6 99 Z" fill="' + glow + '"/><path d="M86 90 Q90 98 88 108 M114 90 Q110 98 112 108" stroke="' + armorD + '" stroke-width="1.6" fill="none"/>';
+      else if (c === 7) { x = '<path d="M80 96 Q100 92 120 96 L119 104 Q100 100 81 104 Z M81 110 Q100 106 119 110 L118 118 Q100 114 82 118 Z" fill="' + armorD + '"' + sw1 + '/>'; [[84, 84], [116, 84], [84, 100], [116, 100], [84, 114], [116, 114]].forEach(function (q) { x += '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="1.8" fill="' + trim + '"/>'; }); }
+      else if (c === 10) x = '<path d="M84 78 L76 128 L66 210 L82 206 L88 128 Z M116 78 L124 128 L134 210 L118 206 L112 128 Z" fill="' + DARK + '"' + sw + '/><path d="M82 82 L118 122 M118 82 L82 122" stroke="#4a3a2a" stroke-width="5"/><path d="M82 82 L118 122 M118 82 L82 122" stroke="#6a5038" stroke-width="2"/><circle cx="100" cy="102" r="6" fill="' + steelL + '"' + sw1 + '/><path d="M96 101 L104 101 M100 97 L100 106 M95 101 L94 104 L98 104 Z M105 101 L106 104 L102 104 Z" stroke="' + OL + '" stroke-width="1" fill="none"/>';
+      else if (c === 11) { x = '<path d="M68 82 Q100 100 132 82 L134 96 Q100 116 66 96 Z" fill="' + WHITE + '"' + sw + '/>'; for (var e = 0; e < 7; e++) x += '<path d="M' + (74 + e * 9) + ' ' + (90 + Math.abs(3 - e) * -1.6 + 6) + ' l1 4 l1 -4" stroke="' + OL + '" stroke-width="1.6" fill="none"/>'; x += '<path d="M86 104 Q100 118 114 104" stroke="' + trim + '" stroke-width="2.5" stroke-dasharray="3 2" fill="none"/><path d="M100 113 L105 119 L100 126 L95 119 Z" fill="#ff5a7a"' + sw1 + '/>'; }
+      else if (c === 12) x = '<path d="M80 80 Q100 76 120 80 L116 126 Q100 130 84 126 Z" fill="' + DARK + '" opacity=".6"/><path d="M88 86 L100 100 L112 86 M100 100 L100 122" stroke="#ff4d5e" stroke-width="2" fill="none" opacity=".9"/><path d="M84 112 L80 104 L88 108 Z M116 112 L120 104 L112 108 Z" fill="' + steelL + '"' + sw1 + '/>';
+      else if (c === 13) x = '<path d="M86 84 Q100 96 114 84 M86 96 Q93 104 100 98 Q107 104 114 96 M90 110 Q100 118 110 110" stroke="' + trim + '" stroke-width="2" fill="none"/><path d="M100 82 L100 120" stroke="' + glow + '" stroke-width="2"/><circle cx="100" cy="98" r="4" fill="' + glow + '"' + sw1 + '/>';
+      return x;
+    }
+    function helmet(c) {
+      var x = '';
+      if (c === 0) return '<ellipse cx="100" cy="22" rx="38" ry="7" fill="#d9b86a"' + sw + '/><path d="M78 22 Q80 0 100 0 Q120 0 122 22 Z" fill="#e8c97f"' + sw + '/><path d="M79 16 Q100 12 121 16 L122 22 Q100 18 78 22 Z" fill="#a8402e"/>';
+      if (c === 1) return '<path d="M78 30 Q100 22 122 30 L122 35 Q100 27 78 35 Z" fill="' + cape + '"' + sw + '/><path d="M121 31 Q140 34 148 48 Q134 44 122 36 Z" fill="' + cape + '"' + sw + '/><rect x="93" y="25" width="14" height="7" rx="1.5" fill="#d8dee8"' + sw + '/>';
+      if (c === 2) return '<path d="M80 27 Q80 4 100 4 Q120 4 120 27 Z" fill="' + steel + '"' + sw + '/><ellipse cx="100" cy="28" rx="31" ry="6" fill="' + steelD + '"' + sw + '/><path d="M88 10 Q94 6 100 6" stroke="' + steelL + '" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M100 4 L100 26" stroke="' + OL + '" stroke-width="1.2"/>';
+      if (c === 3) return '<path d="M78 30 Q100 2 122 30 Q100 22 78 30 Z" fill="' + armor + '"' + sw + '/><path d="M80 28 Q62 18 62 2 Q72 16 86 22 Z M120 28 Q138 18 138 2 Q128 16 114 22 Z" fill="#eef2f8"' + sw + '/><circle cx="100" cy="17" r="3" fill="' + glow + '"/>';
+      if (c === 4) return '<path d="M100 4 Q114 -16 132 -8 Q118 -4 106 6 Z" fill="' + cape + '"' + sw + '/><path d="M77 36 Q74 2 100 1 Q126 2 123 36 L118 36 Q117 18 100 16 Q83 18 82 36 Z" fill="' + steel + '"' + sw + '/><path d="M77 34 L83 34 L85 52 L79 56 Z M123 34 L117 34 L115 52 L121 56 Z" fill="' + steelD + '"' + sw + '/><path d="M98 15 L102 15 L101.2 47 L98.8 47 Z" fill="' + steel + '"' + sw1 + '/><path d="M80 26 Q100 14 120 26" stroke="' + trim + '" stroke-width="2.5" fill="none"/><path d="M86 8 Q92 4 100 3" stroke="' + steelL + '" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+      if (c === 5) { x = '<path d="M81 26 Q66 18 58 0 Q68 8 72 6 Q70 14 76 12 Q74 20 84 22 Z" fill="#fff"' + sw + '/>'; return mirror(x) + '<path d="M80 28 Q100 18 120 28" stroke="' + OL + '" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M80 28 Q100 18 120 28" stroke="' + trim + '" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M100 17 L104 22 L100 27 L96 22 Z" fill="' + glow + '"' + sw1 + '/>'; }
+      if (c === 6) { x = ''; for (var k = 0; k < 5; k++) { var a = Math.PI * (1.08 + k * 0.1), lx = 100 + Math.cos(a) * 23, ly = 32 + Math.sin(a) * 15; x += '<ellipse cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" rx="6" ry="2.8" fill="' + trim + '" stroke="' + OL + '" stroke-width="1.2" transform="rotate(' + (a * 180 / Math.PI + 70).toFixed(0) + ' ' + lx.toFixed(1) + ' ' + ly.toFixed(1) + ')"/>'; } return mirror(x) + '<circle cx="100" cy="16" r="2.6" fill="' + glow + '"/>'; }
+      if (c === 7) return '<path d="M86 14 Q94 -16 120 -12 Q134 -6 128 14 Q114 0 98 12 Z" fill="' + cape + '"' + sw + '/><path d="M96 8 Q104 -6 116 -6 M104 10 Q112 0 124 2" stroke="' + capeD + '" stroke-width="1.6" fill="none"/><path d="M77 38 Q74 4 100 3 Q126 4 123 38 L118 38 Q117 18 100 16 Q83 18 82 38 Z" fill="' + armor + '"' + sw + '/><path d="M77 36 L84 36 L84 58 L76 54 Z M123 36 L116 36 L116 58 L124 54 Z" fill="' + armorD + '"' + sw + '/><path d="M80 24 Q100 12 120 24" stroke="' + trim + '" stroke-width="3" fill="none"/>';
+      if (c === 8) return '<path d="M77 40 L77 8 Q100 2 123 8 L123 40 L118 40 L118 22 Q100 17 82 22 L82 40 Z" fill="' + steel + '"' + sw + '/><path d="M77 8 Q100 2 123 8 L123 13 Q100 7 77 13 Z" fill="' + steelD + '"/><path d="M98 5 H102 V9 H107 V12 H102 V19 H98 V12 H93 V9 H98 Z" fill="' + RED + '"' + sw1 + '/>';
+      if (c === 9) return '<path d="M76 46 Q74 10 100 8 Q126 10 124 46 L118 46 Q119 22 100 21 Q81 22 82 46 Z" fill="' + steel + '"' + sw + '/><path d="M80 40 Q80 16 100 14 Q120 16 120 40" stroke="' + steelD + '" stroke-width="1.2" stroke-dasharray="1.5 2" fill="none"/><path d="M79 28 Q100 20 121 28" stroke="' + RED + '" stroke-width="4" fill="none"/>';
+      if (c === 10) return '<path d="M73 48 Q70 4 100 2 Q130 4 127 48 L120 48 Q122 16 100 14 Q78 16 80 48 Z" fill="' + DARK + '"' + sw + '/><path d="M80 46 Q78 18 100 16 Q122 18 120 46" stroke="' + trim + '" stroke-width="1.6" fill="none"/>';
+      if (c === 11) return '<path d="M80 26 L82 4 L90 14 L95 -2 L100 10 L105 -2 L110 14 L118 4 L120 26 Z" fill="' + trim + '"' + sw + '/><path d="M80 26 Q100 20 120 26 L120 30 Q100 24 80 30 Z" fill="' + capeD + '"' + sw1 + '/><circle cx="100" cy="17" r="3.2" fill="#ff5a7a"' + sw1 + '/><circle cx="88" cy="20" r="2" fill="' + glow + '"/><circle cx="112" cy="20" r="2" fill="' + glow + '"/>';
+      if (c === 12) { x = '<path d="M80 18 Q56 12 48 -14 Q62 0 84 6 Z" fill="' + steelL + '"' + sw + '/>'; return mirror(x) + '<path d="M77 36 Q74 2 100 1 Q126 2 123 36 L118 36 Q117 18 100 16 Q83 18 82 36 Z" fill="' + DARK + '"' + sw + '/><path d="M92 4 L95 -10 L98 2 M102 2 L105 -10 L108 4" fill="' + DARK + '"' + sw1 + '/><path d="M82 26 Q100 18 118 26" stroke="#ff4d5e" stroke-width="2" fill="none"/><circle cx="100" cy="12" r="2.6" fill="#ff4d5e"/>'; }
+      x = '<path d="M80 24 Q60 14 54 -8 Q64 2 70 0 Q66 10 74 8 Q70 18 82 20 Z" fill="' + trim + '"' + sw + '/>';
+      return mirror(x) + '<path d="M79 26 Q100 16 121 26" stroke="' + OL + '" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M79 26 Q100 16 121 26" stroke="' + trim + '" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M100 4 L104 14 L114 16 L104 19 L100 29 L96 19 L86 16 L96 14 Z" fill="' + glow + '"' + sw1 + '/>';
+    }
     var o = '<svg viewBox="0 -18 200 318" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + className(r) + '">';
     o += '<defs><linearGradient id="fl' + uid + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="' + glow + '" stop-opacity=".85"/><stop offset=".6" stop-color="' + glow + '" stop-opacity=".35"/><stop offset="1" stop-color="' + glow + '" stop-opacity="0"/></linearGradient>' +
       '<linearGradient id="fc' + uid + '" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="' + glow + '" stop-opacity="0"/></linearGradient>' +
@@ -1080,7 +1160,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     } else if (hs === 1) back = 'M74 44 Q72 12 100 11 Q128 12 126 44 L134 112 Q120 102 114 92 L86 92 Q80 102 66 112 Z';
     else if (hs === 2) back = 'M76 44 Q76 12 100 12 Q124 12 124 44 L124 56 Q110 48 76 56 Z M116 22 Q152 26 164 72 Q154 64 142 62 Q154 88 148 116 Q132 86 118 48 Z';
     else back = 'M76 48 L72 30 L82 32 L84 16 L94 24 L100 10 L106 24 L118 14 L118 32 L128 30 L124 48 L126 66 L114 56 L86 56 L74 66 Z';
-    o += '<g' + A('sway') + '><path d="' + back + '" fill="' + hairS + '"' + sw + '/></g>';
+    if (cb === 10) o += '<path d="M66 50 Q64 2 100 0 Q136 2 134 50 L138 82 Q100 94 62 82 Z" fill="' + DARK + '"' + sw + '/>';
+    else if (cb === 9) o += '<path d="M72 44 Q70 8 100 6 Q130 8 128 44 L130 80 Q100 90 70 80 Z" fill="' + steel + '"' + sw + '/>';
+    else o += '<g' + A('sway') + '><path d="' + back + '" fill="' + hairS + '"' + sw + '/></g>';
     // jambes et bottes
     o += '<path d="M102 138 L117 138 Q123 172 122 200 Q125 230 127 256 L116 258 Q112 230 110 202 Q104 172 102 138 Z" fill="' + cloth + '"' + sw + '/>';
     o += '<path d="M83 138 L98 138 Q96 172 92 200 Q88 230 86 256 L75 256 Q78 230 79 200 Q80 170 83 138 Z" fill="' + cloth + '"' + sw + '/>';
@@ -1095,8 +1177,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     o += '<path d="M104 77 Q118 76 122 80 L117 126 Q110 129 104 130 Q110 100 104 77 Z" fill="' + armorD + '" opacity=".55"/>';
     o += '<path d="M86 84 Q100 79 114 84 L110 110 Q100 117 90 110 Z" fill="' + armorL + '" opacity=".35"/>';
     o += '<path d="M79 80 Q78 104 84 126" stroke="' + armorL + '" stroke-width="2" fill="none" opacity=".8"/>';
+    o += armorDeco(cb);
     o += '<rect x="81" y="122" width="38" height="8" fill="' + (peasant ? '#4a3018' : trim) + '"' + sw + '/>';
-    if (r >= 5) o += '<path d="M100 90 L106 98 L100 106 L94 98 Z" fill="' + glow + '"' + sw + '/>';
+    if (r >= 5 && [5, 8, 9, 10, 11, 13].indexOf(cb) < 0) o += '<path d="M100 90 L106 98 L100 106 L94 98 Z" fill="' + glow + '"' + sw + '/>';
     if (S.gen > 1) o += '<g transform="translate(100,126)"><circle r="5.5" fill="#1d1830" stroke="' + OL + '" stroke-width="1.5"/><path d="M0 -4 L1.1 -1.1 L4 0 L1.1 1.1 L0 4 L-1.1 1.1 L-4 0 L-1.1 -1.1Z" fill="' + glow + '"/></g>';
     // col / foulard
     o += '<path d="M86 70 Q100 80 114 70 L116 80 Q100 90 84 80 Z" fill="' + cape + '"' + sw + '/>';
@@ -1132,17 +1215,16 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     o += '<path d="M78 38 Q73 56 80 74 L84 52 Z M122 38 Q127 56 120 74 L116 52 Z" fill="' + hair + '"' + sw + '/>';
     o += '<path d="M86 22 Q100 16 114 22" stroke="' + hairL + '" stroke-width="3" fill="none" stroke-linecap="round" opacity=".75"/></g>';
     // accessoire de tête
-    if (ht === 0) o += '<ellipse cx="100" cy="22" rx="38" ry="7" fill="#d9b86a"' + sw + '/><path d="M78 22 Q80 0 100 0 Q120 0 122 22 Z" fill="#e8c97f"' + sw + '/><path d="M79 16 Q100 12 121 16 L122 22 Q100 18 78 22 Z" fill="#a8402e"/>';
-    else if (ht === 1) o += '<path d="M78 30 Q100 22 122 30 L122 35 Q100 27 78 35 Z" fill="' + cape + '"' + sw + '/><path d="M121 31 Q140 34 148 48 Q134 44 122 36 Z" fill="' + cape + '"' + sw + '/><rect x="93" y="25" width="14" height="7" rx="1.5" fill="#d8dee8"' + sw + '/>';
-    else if (ht === 2) o += '<path d="M78 30 Q100 2 122 30 Q100 22 78 30 Z" fill="' + armor + '"' + sw + '/><path d="M80 28 Q62 18 62 2 Q72 16 86 22 Z M120 28 Q138 18 138 2 Q128 16 114 22 Z" fill="#eef2f8"' + sw + '/><circle cx="100" cy="17" r="3" fill="' + glow + '"/>';
-    else if (ht === 3) o += '<path d="M84 26 Q72 12 78 -4 Q84 12 92 22 Z M116 26 Q128 12 122 -4 Q116 12 108 22 Z" fill="#2a2234"' + sw + '/><path d="M80 32 Q100 24 120 32" stroke="' + trim + '" stroke-width="3" fill="none"/><circle cx="100" cy="28" r="2.6" fill="' + glow + '"/>';
-    else o += '<path d="M84 24 L86 8 L93 17 L100 2 L107 17 L114 8 L116 24 Z" fill="' + trim + '"' + sw + '/><circle cx="100" cy="17" r="2.6" fill="' + glow + '"/>';
+    o += helmet(peasant ? 0 : cb);
     if (gHelm) o += '<path d="M126 34 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z" fill="' + RAR[gHelm.rar].c + '"' + sw + '/>';
     if (r >= 12) o += '<ellipse cx="100" cy="-2" rx="18" ry="4" fill="none" stroke="' + glow + '" stroke-width="2.5"/>';
     // bras droit et arme
     o += '<path d="M122 78 Q134 82 136 100 L140 116 L129 120 L125 102 Q119 92 116 86 Z" fill="' + armor + '"' + sw + '/>';
     if (r >= 3) o += '<path d="M134 82 Q126 68 108 74 L112 90 Q124 92 132 90 Z" fill="' + armorL + '" stroke="' + trim + '" stroke-width="2" stroke-linejoin="round"/>';
-    o += '<g transform="translate(131,138) rotate(16) scale(1.25)"><g class="wpn"' + (Math.floor(r / 14) > 0 || r >= 6 ? ' style="filter:drop-shadow(0 0 3px ' + glow + ')"' : '') + '>' + weaponSVG(r % 14, trim, glow, OL) + '</g></g>';
+    if (cb === 7) o += mirror('<path d="M62 92 Q56 66 80 62 Q96 64 96 76 L90 92 Q74 98 62 92 Z" fill="' + armor + '" stroke="' + trim + '" stroke-width="2.2" stroke-linejoin="round"/><path d="M66 86 Q72 72 88 70" stroke="' + armorL + '" stroke-width="2" fill="none"/>');
+    if (cb === 12) o += mirror('<path d="M70 80 L58 60 L78 74 Z M80 74 L76 54 L88 72 Z" fill="' + steelL + '"' + sw + '/>');
+    if (cb === 3) o += mirror('<path d="M64 84 Q62 72 72 72 Q74 64 84 70 Q90 66 92 76 Q80 82 64 84 Z" fill="#c8a878"' + sw1 + '/>');
+    o += '<g transform="translate(131,138) rotate(16) scale(1.25)">' + weaponFx(r % 14, tier, glow, animate, uid) + '<g class="wpn"' + (tier > 0 || r >= 6 ? ' style="filter:drop-shadow(0 0 3px ' + glow + ')' + (tier >= 2 ? ' drop-shadow(0 0 8px ' + glow + ')' : '') + '"' : '') + '><g transform="scale(' + (1 + 0.14 * Math.min(tier, 4)) + ',' + (1 + 0.02 * Math.min(tier, 4)) + ')">' + weaponSVG(r % 14, trim, glow, OL, tier) + weaponGems(r % 14, tier, glow, OL) + '</g></g></g>';
     o += '<path d="M129 118 L140 116 L137 136 L127 136 Z" fill="' + armorD + '"' + sw + '/>';
     o += '<path d="M126 134 L138 134 Q140 142 133 145 Q125 144 126 134 Z" fill="' + skin + '"' + sw + '/>';
     if (gRing) o += '<circle cx="132" cy="140" r="6.5" fill="none" stroke="' + RAR[gRing.rar].c + '" stroke-width="2.2"/>';
@@ -1514,8 +1596,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     el.rank.textContent = S.rank;
     el.nextName.textContent = className(S.rank + 1);
     $('bg').innerHTML = bgSVG(S.rank);
-    $('biome').textContent = ' · ' + BIOMES[biomeOf(S.rank)] + ' · ' + WEAPONS[S.rank % 14] + ' (' + ELEM[myElem()].n + ')';
-    $('nextSub').textContent = 'Prochaine classe · ' + WEAPONS[(S.rank + 1) % 14];
+    $('biome').textContent = ' · ' + BIOMES[biomeOf(S.rank)] + ' · ' + weaponName(S.rank) + ' (' + ELEM[myElem()].n + ')';
+    $('nextSub').textContent = 'Prochaine classe · ' + weaponName(S.rank + 1);
   }
   function setBuy(btn, want, label, room) {
     btn.firstChild.textContent = label;
@@ -1600,13 +1682,28 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     el.spBadge.hidden = S.sp < 1 && !S.newItem; el.spBadge.textContent = S.sp > 0 ? S.sp : '!';
   }
 
+  var CTYPE = { gold: 'Or immédiat', tap: 'Renfort de touchers', dmg: 'Contre les boss', burst: 'Attaque instantanée', guard: 'Défense', inc: 'Revenu', time: 'Contre les boss', crit: 'Critiques', hp: 'Contre les boss', all: 'Ultime' };
+  function clsInfo(r) { var c = CLS[r % 14], cyc = Math.floor(r / 14); var sc = c.t === 'gold' || c.t === 'burst' ? 1 + 0.5 * cyc : c.t === 'crit' || c.t === 'hp' || c.t === 'time' || c.t === 'guard' ? 1 : 1 + 0.2 * cyc; return { n: c.n, t: c.t, dur: c.dur, d: c.d + (cyc && sc > 1 ? ' (puissance ×' + fmt(sc) + ')' : '') }; }
+  function renderClsCard() {
+    var box = $('clsCard'); if (!box) return;
+    if (S.rank < 1) { box.innerHTML = '<h2>Compétence de classe</h2><p class="note">Chaque classe possède un pouvoir unique, à lancer avec le bouton doré sous le héros. Évolue une première fois pour obtenir le tien.</p>'; return; }
+    var c = clsInfo(S.rank), nx = clsInfo(S.rank + 1);
+    box.innerHTML = '<div class="sphead"><h2>Compétence de classe</h2><span class="genlbl">' + className(S.rank) + '</span></div>' +
+      '<div class="cname">' + c.n + '</div>' +
+      '<div class="ctags">' + '<span class="ctag">' + CTYPE[c.t] + '</span>' + (c.dur ? '<span class="ctag">Dure ' + c.dur + ' s</span>' : '<span class="ctag">Instantané</span>') + '<span class="ctag">Recharge ' + (SKILL_CD / 1000) + ' s</span></div>' +
+      '<p class="cdesc">' + c.d + '.</p>' +
+      '<p class="note">Se lance avec le bouton doré sous le héros. Elle change à chaque évolution, et devient plus puissante tous les 14 rangs.</p>' +
+      '<div class="cnext">Prochaine classe, ' + className(S.rank + 1) + ' : <b>' + nx.n + '</b>. ' + nx.d + '.</div>';
+  }
   function renderSkills() {
+    renderClsCard();
     var html = '', limit = showAll ? S.rank : Math.min(S.rank, 60);
     if (S.rank < 1) { el.skillList.innerHTML = '<p class="note">Évolue une première fois pour débloquer ta première compétence.</p>'; return; }
     for (var i = S.rank; i > S.rank - limit; i--) {
       var info = skillInfo(i), lv = S.skills[i] || 0, c = 1 + Math.floor(lv / 5);
       var cur = lv * info.t.per * info.w, per = info.t.per * info.w;
       html += '<div class="skill' + (i === S.rank ? ' new' : '') + '"><b>' + info.name + '</b>' +
+        '<span class="x">' + TXT[info.t.k] + (info.tier > 1 ? ' Version ' + roman(info.tier) + ' : effet +' + Math.round(20 * (info.tier - 1)) + ' %.' : '') + '</span>' +
         '<span class="d">' + info.t.desc(per) + ' par niveau</span>' +
         '<span class="lv">Niveau ' + lv + (lv ? ' · ' + info.t.desc(cur) : ' · non apprise') + (i === S.rank ? ' · nouvelle' : '') + '</span>' +
         '<button data-skill="' + i + '"' + (S.sp < c ? ' disabled' : '') + '>' + (lv ? 'Améliorer' : 'Apprendre') + '<br><small>' + c + ' pt' + (c > 1 ? 's' : '') + '</small></button></div>';
