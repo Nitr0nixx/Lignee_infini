@@ -161,10 +161,12 @@ button:disabled { cursor: default; }
 .combo b { display: block; font-size: 30px; font-weight: 800; color: #fff; -webkit-text-stroke: 1.5px rgba(30, 12, 40, .9); text-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
 .combo small { display: block; font-size: 11px; letter-spacing: .25em; text-transform: uppercase; font-weight: 800; color: rgba(255, 255, 255, .85); margin-top: 2px; }
 .combo.pop b { animation: cbPop .2s ease-out; }
+.combo.pop2 b { animation: cbPop2 .2s ease-out; }
+@keyframes cbPop2 { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
 .combo.t2 b { color: #ffd84a; text-shadow: 0 0 14px rgba(255, 200, 60, .8); }
 .combo.t3 b { color: #ff9a3a; font-size: 34px; text-shadow: 0 0 18px rgba(255, 120, 40, .9); }
 .combo.t4 b { color: #ff6ad8; font-size: 38px; text-shadow: 0 0 22px rgba(255, 80, 200, .9); }
-.combo.t5 b { font-size: 42px; animation: cbPop .2s ease-out, cbRb 1.2s linear infinite; text-shadow: 0 0 26px rgba(130, 220, 255, .95); }
+.combo.t5 b { font-size: 42px; animation: cbRb 1.2s linear infinite; text-shadow: 0 0 26px rgba(130, 220, 255, .95); }
 .combo.mile b { animation: cbMile .45s cubic-bezier(.34, 1.56, .64, 1); }
 @keyframes cbPop { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
 @keyframes cbMile { 0% { transform: scale(2.2) rotate(-8deg); } 100% { transform: scale(1) rotate(0); } }
@@ -2320,6 +2322,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
 
   /* ---------- Actions ---------- */
   function floater(text, x, y, crit, dmg) {
+    if (typeof A3 !== 'undefined' && A3.on()) { A3.num((dmg ? '−' : '+') + text, x, y, crit, crit ? '#fff3c0' : dmg ? '#ff8a8e' : '#ffd84a', crit); return; }
     var f = document.createElement('div');
     f.className = 'fl' + (crit ? _T(' crit') : '');
     f.textContent = (dmg ? '−' : '+') + text;
@@ -2346,13 +2349,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     S.st.clics++;
     if (Math.random() < 0.01) hwCandy(1, e.clientX - r.left, e.clientY - r.top - 40);
     eggTap();
-    var who = B ? el.bhero : el.hero; who.classList.remove('atk'); void who.offsetWidth; who.classList.add('atk');
+    if (typeof A3 !== 'undefined' && A3.on()) A3.atk(); else { var who = B ? el.bhero : el.hero; who.classList.remove('atk'); void who.offsetWidth; who.classList.add('atk'); }
     if (fxOn('eclats')) fxBurst(e.clientX - r.left, e.clientY - r.top, crit);
     if (v > (S.st.maxHit || 0)) S.st.maxHit = v;
-    if (B) { el.bossBox.classList.remove('hit'); void el.bossBox.offsetWidth; el.bossBox.classList.add('hit'); var ok = ubTapOk(e.clientX); if (ok !== true) { floatText(ok, e.clientX - r.left, e.clientY - r.top - 20, 'fire'); } else { v *= dmgMult(); B.hp -= v; floater(fmt(v), e.clientX - r.left, e.clientY - r.top, crit, true); } checkBoss(); }
+    if (B) { if (typeof A3 !== 'undefined' && A3.on()) A3.hit(); else { el.bossBox.classList.remove('hit'); void el.bossBox.offsetWidth; el.bossBox.classList.add('hit'); } var ok = ubTapOk(e.clientX); if (ok !== true) { floatText(ok, e.clientX - r.left, e.clientY - r.top - 20, 'fire'); } else { v *= dmgMult(); B.hp -= v; floater(fmt(v), e.clientX - r.left, e.clientY - r.top, crit, true); } checkBoss(); }
     else { addGold(v); floater(fmt(v), e.clientX - r.left, e.clientY - r.top, crit); }
-    ui();
+    uiSoon();
   });
+  function uiSoon() { if (uiSoon.p) return; uiSoon.p = 1; requestAnimationFrame(function () { uiSoon.p = 0; ui(); }); }
 
   /* ---------- Combo de touchers ---------- */
   var CB = { n: 0, last: 0, tm: 0, el: null, gl: null };
@@ -2367,8 +2371,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     var n = CB.n, tier = n >= 100 ? 5 : n >= 50 ? 4 : n >= 25 ? 3 : n >= 10 ? 2 : 1;
     if (n >= 3) {
       CB.el.innerHTML = '<b>×' + n + '</b><small>combo</small>';
-      CB.el.className = _T('combo on t') + tier + (n === 10 || n === 25 || n === 50 || n % 50 === 0 ? _T(' mile') : '');
-      void CB.el.offsetWidth; CB.el.classList.add('pop');
+      CB.f = !CB.f;
+      CB.el.className = _T('combo on t') + tier + (n === 10 || n === 25 || n === 50 || n % 50 === 0 ? _T(' mile') : '') + (CB.f ? _T(' pop') : ' pop2');
       CB.gl.className = 'cbglow t' + tier + (tier >= 2 ? _T(' on') : '');
       if (n === 10 || n === 25 || n === 50 || n === 100) sfx('crit');
     }
@@ -2429,6 +2433,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   };
   function sfx(n) {
     if (!SND.fx || !audio()) return;
+    if (n === 'tap' || n === 'hit') { var tn = performance.now(); if (tn - (sfx.l || 0) < 55) return; sfx.l = tn; }
     if (AC.state !== 'running') { try { AC.resume(); } catch (e) { } }
     try { SFX[n](); } catch (e) { }
   }
@@ -2486,7 +2491,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function restart(node, cls) { node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); }
   function shake() { restart(el.stage, 'shake'); }
   function slashFx(x, y, crit) {
-    if (reduced) return;
+    if (reduced || (typeof A3 !== 'undefined' && A3.on())) return;
     var sl = document.createElement('div'); sl.className = 'slash';
     sl.style.left = x + 'px'; sl.style.top = y + 'px'; sl.style.setProperty('--a', Math.floor(Math.random() * 360) + 'deg');
     el.stage.appendChild(sl); sl.addEventListener('animationend', function () { sl.remove(); });
@@ -2499,7 +2504,9 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     }
   }
   function bigText(t, kind) { bigEl.textContent = t; bigEl.className = _T('bigtext ') + (kind || ''); void bigEl.offsetWidth; bigEl.className = _T('bigtext go ') + (kind || ''); }
+  var FTC = { lvl: '#7affb0', moon: '#d8c8ff', slimefx: '#7ec8ff', fire: '#ff9a4a', candy: '#ffb347' };
   function floatText(t, x, y, cls) {
+    if (typeof A3 !== 'undefined' && A3.on()) { A3.num(t, x, y, false, FTC[cls] || '#ffd84a', cls === 'lvl' || cls === 'moon'); return; }
     var f = document.createElement('div'); f.className = _T('fl ') + cls; f.textContent = t; f.style.left = x + 'px'; f.style.top = y + 'px';
     el.stage.appendChild(f); f.addEventListener('animationend', function () { f.remove(); });
   }
@@ -3126,7 +3133,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function eggTap() {
     if (!S.eggs.length) return;
     var e = S.eggs[0]; e.prog += abVal(6) || 1;
-    restart($('eggMini'), 'wob');
+    var now_ = Date.now(); if (!eggTap.t || now_ - eggTap.t > 300) { eggTap.t = now_; restart($('eggMini'), 'wob'); }
     if (e.prog >= e.need) hatch(); else renderEggMini(true);
   }
   function renderEggMini(light) {
@@ -5205,24 +5212,41 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       var ks = Object.keys(NC); if (ks.length <= 64) return;
       ks.filter(function (k) { return !NC[k].u; }).sort(function (a, b) { return NC[a].last - NC[b].last; }).slice(0, ks.length - 48).forEach(function (k) { gl.deleteTexture(NC[k].t); delete NC[k]; });
     }
+    var NCV = null, NFONT = '';
+    function numTex(c) {
+      var t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t;
+    }
+    function num(txt, x, y, crit, col, big) {
+      if (!active || !txt) return;
+      if (!NFONT) { try { NFONT = getComputedStyle(el.stage).getPropertyValue('--display') || ''; } catch (e) { } NFONT = (NFONT || '').trim() || 'Georgia, serif'; }
+      numRaw(txt, col, crit, big || crit, x, y, NFONT);
+    }
     function num3d(n) {
       if (SET.q >= 1 && nums.length > 8) return;
       var txt = n.textContent || ''; if (!txt) return;
-      var cs = getComputedStyle(n), col = cs.color || '#ffd84a', crit = n.classList.contains('crit'), big = crit || n.classList.contains('lvl');
-      var cached = NC[txt + '|' + (cs.color || '#ffd84a') + '|' + crit + '|' + big];
-      var c = cached ? null : document.createElement('canvas'), x = c ? (c.width = 512, c.height = 128, c.getContext('2d')) : null;
+      var cs = getComputedStyle(n);
+      numRaw(txt, cs.color || '#ffd84a', n.classList.contains('crit'), n.classList.contains('crit') || n.classList.contains('lvl'), parseFloat(n.style.left) || W / 2, parseFloat(n.style.top) || H / 2, cs.fontFamily);
+    }
+    function numRaw(txt, col, crit, big, px, py, fam) {
+      if (SET.q >= 1 && nums.length > 8) return;
+      var cached = NC[txt + '|' + col + '|' + crit + '|' + big];
+      if (!NCV) { NCV = document.createElement('canvas'); NCV.width = 512; NCV.height = 128; }
+      var c = cached ? null : NCV, x = c ? c.getContext('2d') : null;
       if (x) {
-      var fs = big ? 84 : 64; x.font = '800 ' + fs + 'px ' + (cs.fontFamily || 'sans-serif'); x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.clearRect(0, 0, 512, 128); x.shadowBlur = 0;
+      var fs = big ? 84 : 64; x.font = '800 ' + fs + 'px ' + (fam || 'sans-serif'); x.textAlign = 'center'; x.textBaseline = 'middle';
       var tw = Math.min(500, x.measureText(txt).width + 24);
       x.lineJoin = 'round'; x.lineWidth = 12; x.strokeStyle = 'rgba(20,10,30,.85)'; x.strokeText(txt, 256, 66, 496);
       if (crit) { x.shadowColor = '#ffb020'; x.shadowBlur = 22; }
       x.fillStyle = crit ? '#fff3c0' : col; x.fillText(txt, 256, 66, 496);
       }
       var key = txt + '|' + col + '|' + crit + '|' + big, ce = NC[key];
-      if (!ce) { ce = NC[key] = { t: mkTex(c), u: 0 }; ncTrim(); }
+      if (!ce) { ce = NC[key] = { t: numTex(c), u: 0 }; ncTrim(); }
       ce.u++; ce.last = performance.now();
       var t = ce.t, zp = (st.mode === 'boss' && sprites.boss ? sprites.boss.z : (sprites.mob ? sprites.mob.z : .9)) + .9;
-      var wp = screenToWorld(parseFloat(n.style.left) || W / 2, parseFloat(n.style.top) || H / 2, zp), sc = (big ? 1.25 : .85) * (st.mode === 'boss' ? 1.45 : 1);
+      var wp = screenToWorld(px, py, zp), sc = (big ? 1.25 : .85) * (st.mode === 'boss' ? 1.45 : 1);
       var rush = st.cbT && performance.now() - st.cbT < 400 && (st.cb || 0) >= 5;
       while (nums.length > (rush ? 9 : 15)) numFree(nums.shift());
       if (rush) { wp[0] += (Math.random() - .5) * 1.8; wp[1] += (Math.random() - .3) * .9; }
@@ -5628,7 +5652,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       setTimeout(function () { if (!active) start(); }, 400);
     }
     function status() { if (SET.q >= 2) return 1; if (!ok && !init()) return 2; return 0; }
-    return { tap: tap, evo: evo, skill: skill, start: start, stop: stop, refresh: refresh, on: function () { return active; }, status: status };
+    function hitFx() {
+      if (!active || st.mode !== 'boss') return;
+      st.hitT = performance.now(); st.shake = Math.max(st.shake, 0.05);
+      var tg = target(), myc = hex(ELEM[myElem()].c), em_ = typeof elemMult === 'function' ? elemMult() : 1;
+      burst(tg[0], tg[1], tg[2], myc, em_ > 1 ? 12 : em_ < 1 ? 3 : 6, em_ > 1 ? 5.5 : 4, em_ > 1 ? .3 : .2);
+      if (em_ > 1) flashL(myc, .7); else flashL([1, .95, .85], .4);
+    }
+    return { atk: function () { if (active) atkStart(performance.now()); }, hit: hitFx, num: num, tap: tap, evo: evo, skill: skill, start: start, stop: stop, refresh: refresh, on: function () { return active; }, status: status };
   })();
   /*i18n-on*/
   renderHero(); renderSkills(); applyFxClasses(); renderStagePets(); renderEggMini(); defisUI(); renderVillage(); ui(); setTimeout(fxSize, 50);
@@ -5662,7 +5693,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     });
   }
   var T = window._T || function (x) { return x; };
-  var APPV = '26';
+  var APPV = '27';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
