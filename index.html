@@ -238,6 +238,7 @@ button:disabled { cursor: default; }
 .isheet .acts button.rel.arm { border-color: #e5787a; color: #e5787a; }
 .isheet .acts button.rel:disabled { opacity: .45; background: transparent; }
 @keyframes sheetIn { from { transform: translateY(100%); } }
+.isheet.still, .ishade.still { animation: none; }
 @keyframes fadein { from { opacity: 0; } }
 .weak { position: absolute; z-index: 6; width: 60px; height: 60px; margin: -30px 0 0 -30px; padding: 0; border-radius: 50%; background: radial-gradient(circle, #fff 0 16%, #ffe36a 28%, rgba(255, 90, 60, .9) 58%, rgba(255, 90, 60, 0) 72%); border: 3px solid #ffd84a; box-shadow: 0 0 18px #ffd84a, 0 0 4px #fff inset; animation: weakIn .25s cubic-bezier(.34, 1.56, .64, 1), weakP .45s .25s ease-in-out infinite alternate; touch-action: none; }
 .weak::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; border: 3px solid #fff; pointer-events: none; animation: weakRing var(--t, 1400ms) linear forwards; }
@@ -2906,8 +2907,8 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function fxOn0(k) { for (var i = 0; i < FX.length; i++) if (FX[i].k === k) return fxUn(FX[i]) && S.fx[k] !== false; return false; }
   function soulsFor(r) { return r < 20 ? 0 : Math.floor(Math.pow(r - 15, 1.5) * (1 + 0.1 * (S.gen - 1))); }
   function applyFxClasses() {
-    el.stage.classList.toggle('rainbow', fxOn('arcenciel'));
-    el.gold.classList.toggle('shine', fxOn('arcenciel'));
+    el.stage.classList.toggle('rainbow', fxOn0('arcenciel'));
+    el.gold.classList.toggle('shine', fxOn0('arcenciel'));
   }
   function renderLineage() {
     var can = S.rank >= 20 && !B, g = soulsFor(S.rank), start = rl('her');
@@ -2932,7 +2933,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     el.relicList.innerHTML = h;
     h = '';
     FX.forEach(function (f) {
-      var un = fxUn(f), on = fxOn(f.k);
+      var un = fxUn(f), on = fxOn0(f.k);
       h += '<div class="skill' + (un ? '' : _T(' locked')) + '"><b>' + f.name + '</b><span class="d">' + f.desc + '</span><span class="lv">' + (un ? (on ? _T('Activé') : _T('Coupé')) : (f.hw ? _T('Boutique Halloween') : f.sp ? _T('Tour abyssale, étage 25') : _T('Génération ') + roman(f.gen))) + '</span>' +
         '<button data-fx="' + f.k + '"' + (un ? (on ? ' class="on"' : '') : _T(' disabled')) + '>' + (un ? (on ? _T('Activé') : _T('Coupé')) : _T('Verrouillé')) + '</button></div>';
     });
@@ -2972,7 +2973,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   });
   el.fxList.addEventListener('click', function (e) {
     var b = e.target.closest('button[data-fx]'); if (!b) return;
-    var k = b.getAttribute('data-fx'); S.fx[k] = !fxOn(k);
+    var k = b.getAttribute('data-fx'); S.fx[k] = !fxOn0(k);
     applyFxClasses(); renderLineage(); save();
   });
 
@@ -3314,7 +3315,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     $('incub').innerHTML = e ? '<div class="egg' + (e.prog / e.need > 0.8 ? _T(' near') : '') + '">' + eggSVG(e.rar, e.prog / e.need, e.hw) + _T('</div><div><b>Œuf ') + (e.hw ? _T('citrouille ') : '') + RAR[e.rar].n.toLowerCase() + _T('</b><p class="note">Touche le héros pour le réchauffer : ') + e.prog + ' / ' + e.need + '</p><div class="bar"><i style="width:' + (100 * e.prog / e.need).toFixed(1) + '%;background:' + RAR[e.rar].c + '"></i></div></div>'
       : '<div class="egg">' + eggSVG(0, 0).replace('#fff6e8', '#3a3f55') + _T('</div><div><b>Aucun œuf</b><p class="note">Un œuf garanti tous les 5 rangs sur le boss de fin. 10 % de chance sur un mini-boss, 8 % dans un coffre mystérieux.</p></div>');
     $('treatLbl').textContent = S.treats + _T(' friandise') + (S.treats > 1 ? PLS : '');
-    $('petList').innerHTML = petInvHTML(slots);
+    setHTML($('petList'), petInvHTML(slots));
   }
   function petDupList() {
     return S.pets.filter(function (p) {
@@ -3344,11 +3345,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     if (D_.length) { var gain = D_.reduce(function (a, p) { return a + releaseVal(p); }, 0); h += '<div class="invact"><button class="mbtn sm ghost' + (UIX.pbulk ? _T(' arm') : '') + '" data-pbulk="1">' + (UIX.pbulk ? _T('Confirmer : ') : '') + _T('Libérer les doublons communs (') + D_.length + ') · +' + gain + _T(' friandise') + (gain > 1 ? PLS : '') + '</button></div>'; }
     h += '</div>';
     var p = petById(UIX.psel);
+    if (!p) UIX.pshown = 0;
     if (p) {
       var eq = S.equip.slice(0, slots).indexOf(p.id) >= 0, c = feedCost(p), f = petForm(p), away = onExp(p.id);
       var next = f === 0 ? _T(' · évolue au niveau 10') : f === 1 ? _T(' · évolue au niveau 25') : '';
-      h += '<div class="ishade" data-pclose="1"></div><div class="isheet" style="--rc:' + RAR[p.rar].c + '"><button class="xclose" data-pclose="1" aria-label="Fermer">✕</button>' +
-        '<div class="shead"><div class="sbig">' + petSVG(p.sp, p.rar, f, 'ps' + p.id, true) + '</div><div><span class="rar" style="color:' + RAR[p.rar].c + '">' + RAR[p.rar].n + ' · ' + '★★★'.slice(0, f + 1) + ' ' + FORMS[f] + '</span><b>' + petName(p) + _T('</b><span class="d">niveau ') + p.lv + next + '</span><span>' + petBonusTxt(p) + '</span><span class="d ab">' + abTxt(p) + '</span></div></div>' +
+      var stl = UIX.pshown === p.id ? _T(' still') : ''; UIX.pshown = p.id;
+      h += '<div class="ishade' + stl + '" data-pclose="1"></div><div class="isheet' + stl + '" style="--rc:' + RAR[p.rar].c + '"><button class="xclose" data-pclose="1" aria-label="Fermer">✕</button>' +
+        '<div class="shead"><div class="sbig">' + petSVG(p.sp, p.rar, f, 'ps' + p.id, false) + '</div><div><span class="rar" style="color:' + RAR[p.rar].c + '">' + RAR[p.rar].n + ' · ' + '★★★'.slice(0, f + 1) + ' ' + FORMS[f] + '</span><b>' + petName(p) + _T('</b><span class="d">niveau ') + p.lv + next + '</span><span>' + petBonusTxt(p) + '</span><span class="d ab">' + abTxt(p) + '</span></div></div>' +
         '<div class="acts"><button data-equip="' + p.id + '"' + (eq ? ' class="eq"' : '') + (away ? _T(' disabled') : '') + '>' + (away ? _T('En expédition') : eq ? _T('Équipé') : _T('Équiper')) + '</button>' +
         '<button data-feed="' + p.id + '"' + (S.gold < c ? _T(' disabled') : '') + _T('>Nourrir<br><small>') + fmt(c) + _T(' or</small></button>') +
         '<button data-treat="' + p.id + '"' + (S.treats < treatCost(p) ? _T(' disabled') : '') + _T('>Friandise<br><small>') + treatCost(p) + _T(' friandise') + (treatCost(p) > 1 ? PLS : '') + '</small></button>' +
@@ -3845,7 +3848,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       h += '<div class="gslot' + (it ? '' : _T(' empty')) + '"' + (it ? ' style="border-color:' + RAR[it.rar].c + '"' : '') + '><div class="gi">' + (it ? itemIcon(it) : '') + '</div><b>' + (it ? itemName(it) + (it.up ? ' +' + it.up : '') : sl.n) + '</b><span>' + (it ? ISTAT[it.st].d(itemVal(it)) : _T('Aucun')) + '</span></div>';
     });
     $('gearSlots').innerHTML = h;
-    $('itemList').innerHTML = gearInvHTML();
+    setHTML($('itemList'), gearInvHTML());
     renderForge();
   }
   /* ---------- Inventaire d'équipement : grille de vignettes + fiche ---------- */
@@ -3876,9 +3879,11 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     h += '</div></div>';
     S.seenItem = S.items.reduce(function (m, it) { return Math.max(m, it.id); }, seen);
     var it = itemById(UIX.isel);
+    if (!it) UIX.ishown = 0;
     if (it) {
       var sl = slotOf(it.s), eq = S.gear[it.s] === it.id, c = upCost(it), cur = gearItem(it.s);
-      h += '<div class="ishade" data-iclose="1"></div><div class="isheet" style="--rc:' + itemCol(it) + '"><button class="xclose" data-iclose="1" aria-label="Fermer">✕</button>' +
+      var stl2 = UIX.ishown === it.id ? _T(' still') : ''; UIX.ishown = it.id;
+      h += '<div class="ishade' + stl2 + '" data-iclose="1"></div><div class="isheet' + stl2 + '" style="--rc:' + itemCol(it) + '"><button class="xclose" data-iclose="1" aria-label="Fermer">✕</button>' +
         '<div class="shead"><div class="sbig">' + itemIcon(it) + '</div><div><span class="rar" style="color:' + itemCol(it) + '">' + (it.set ? _T('Set ') + setOf(it.set).n + (it.ench ? _T(' · enchanté ') + it.ench + '/5' : '') : RAR[it.rar].n) + ' · ' + sl.n + '</span><b>' + itemName(it) + (it.up ? ' +' + it.up : '') + '</b><span>' + ISTAT[it.st].d(itemVal(it)) + '</span>' +
         (!eq && cur ? '<span class="cmp ' + (itemPow(it) >= itemPow(cur) ? 'up' : 'down') + _T('">Porté : ') + itemName(cur) + (cur.up ? ' +' + cur.up : '') + ' · ' + ISTAT[cur.st].d(itemVal(cur)) + '</span>' : '') + '</div></div>' +
         '<div class="acts"><button data-ieq="' + it.id + '"' + (eq ? ' class="eq"' : '') + '>' + (eq ? _T('Équipé') : _T('Équiper')) + '</button>' +
@@ -5844,7 +5849,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     });
   }
   var T = window._T || function (x) { return x; };
-  var APPV = '30';
+  var APPV = '32';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
