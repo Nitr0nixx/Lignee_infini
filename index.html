@@ -2528,7 +2528,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function dmgStatic() { return (1 + P.dmg) * (1 + GB.dmg) * (1 + V('forge')) * (1 + BV('dmg') + BV('all')) * (1 + GB.all); }
   function dpsSample() {
     if (!B || !B.sample || !B.t0f) return;
-    var el_ = (Date.now() - B.t0f) / 1000, dealt = B.max - Math.max(0, B.hp);
+    var el_ = (Date.now() - B.t0f) / 1000 - 0.6, dealt = B.max - Math.max(0, B.hp);
     if (el_ < 1.5 || dealt <= 0) return;
     var r = Math.min(60, Math.max(0.5, dealt / el_ / (dpsExp() * (B.el0 || 1)))), o = S.dpsR || 1;
     S.dpsR = r > o ? o * 0.4 + r * 0.6 : o * 0.75 + r * 0.25;
@@ -2680,7 +2680,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     B.t0f = now; B.el0 = B.el != null ? elemVs(myElem(), B.el) : 1; B.sample = !B.ub && !B.raid && !B.abyss && !B.wb && !B.tower;
     var Rm = S.dpsR || 0;
     if (Rm > 1) {
-      var tgt = B.ub ? ({ heal: 0.42, shield: 0.32, armor: 0.5, split: 0.66, elem: 0.66, rage: 0.8, reflect: 0.66, minions: 0.62, fury: 0.7 })[B.ub] || 0.7 : final && !mode ? 0.62 : inv ? 0.38 : mode === 'dg' ? (B.dg.k === 'boss' ? 0.72 : 0.45) : !mode ? 0.48 : 0;
+      var tgt = B.ub ? ({ heal: 0.42, shield: 0.32, armor: 0.5, split: 0.66, elem: 0.66, rage: 0.8, reflect: 0.66, minions: 0.62, fury: 0.7 })[B.ub] || 0.7 : final && !mode ? 0.86 : inv ? 0.5 : mode === 'dg' ? (B.dg.k === 'boss' ? 0.85 : 0.6) : !mode ? 0.72 : 0;
       if (tgt) { var fl = dpsExp() * Rm * ((B.until - now) / 1000) * tgt; if (fl > B.hp) B.hp = B.max = fl; }
     }
     var type = B.ub ? ubOf(S.rank).t : mode === 'raid' ? 4 : mode === 'tower' ? B.tower % 5 : mode === 'abyss' ? (B.abyss + 2) % 5 : mode === 'wb' ? 4 : final ? (S.rank % 4) + 1 : inv ? (S.rank + 1) % 4 : miniIdx(gate()) % 4;
@@ -5662,7 +5662,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     });
   }
   var T = window._T || function (x) { return x; };
-  var APPV = '25';
+  var APPV = '26';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
