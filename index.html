@@ -1042,7 +1042,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       var raw = localStorage.getItem(KEY);
       if (raw) {
         var o = JSON.parse(raw);
-        ['gold', 'level', 'rank', 'sp', 'last', 'frenzyUntil', 'frenzyReady', 'miniDone', 'nextEvent', 'souls', 'soulsTotal', 'gen', 'petSeq', 'treats', 'skillReady', 'shards', 'itemSeq', 'tut', 'candy', 'boonQ', 'mat', 'tr', 'ess', 'genMax', 'mtitle'].forEach(function (k) {
+        ['gold', 'level', 'rank', 'sp', 'dpsR', 'last', 'frenzyUntil', 'frenzyReady', 'miniDone', 'nextEvent', 'souls', 'soulsTotal', 'gen', 'petSeq', 'treats', 'skillReady', 'shards', 'itemSeq', 'tut', 'candy', 'boonQ', 'mat', 'tr', 'ess', 'genMax', 'mtitle'].forEach(function (k) {
           if (typeof o[k] === 'number' && isFinite(o[k])) s[k] = o[k];
         });
         if (o.ev && ['pluie', 'marchand', 'coffre'].indexOf(o.ev.t) >= 0 && typeof o.ev.until === 'number') s.ev = { t: o.ev.t, until: o.ev.until, x: +o.ev.x || 50, y: +o.ev.y || 50 };
@@ -2526,6 +2526,14 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
 
   /* ---------- Combats de boss ---------- */
   function dmgStatic() { return (1 + P.dmg) * (1 + GB.dmg) * (1 + V('forge')) * (1 + BV('dmg') + BV('all')) * (1 + GB.all); }
+  function dpsSample() {
+    if (!B || !B.sample || !B.t0f) return;
+    var el_ = (Date.now() - B.t0f) / 1000, dealt = B.max - Math.max(0, B.hp);
+    if (el_ < 1.5 || dealt <= 0) return;
+    var r = Math.min(60, Math.max(0.5, dealt / el_ / (dpsExp() * (B.el0 || 1)))), o = S.dpsR || 1;
+    S.dpsR = r > o ? o * 0.4 + r * 0.6 : o * 0.75 + r * 0.25;
+    B.sample = false;
+  }
   function critF() { return 1 + 0.6 * Math.min(0.85, critChance()) * Math.max(0, (abVal(2) || 5) + TBX.critx - 1); }
   function dpsExp() { return (income(0) + 5 * tapVal(true) * critF()) * dmgStatic(); }
   function powerRatio() { return tapVal(true) / ((1 + 0.5 * S.level) * rankMult()) * dmgStatic(); }
@@ -2668,6 +2676,13 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     else if (mode === 'dg') B.hp = B.max = bossHp(dsec, (B.dg.k === 'boss' ? 0.85 : Math.min(0.8, 0.4 + 0.08 * B.dg.room + (B.dg.k === 'elite' ? 0.2 : 0))) * hpGrow(1, 1.02, 2));
     el.hud.classList.remove('ub');
     if (final && !mode && isUnique(S.rank)) { ubSetup(); el.hud.classList.add('ub'); }
+    // puissance réelle mesurée : les boss tiennent un temps cible face à tes vrais dégâts
+    B.t0f = now; B.el0 = B.el != null ? elemVs(myElem(), B.el) : 1; B.sample = !B.ub && !B.raid && !B.abyss && !B.wb && !B.tower;
+    var Rm = S.dpsR || 0;
+    if (Rm > 1) {
+      var tgt = B.ub ? ({ heal: 0.42, shield: 0.32, armor: 0.5, split: 0.66, elem: 0.66, rage: 0.8, reflect: 0.66, minions: 0.62, fury: 0.7 })[B.ub] || 0.7 : final && !mode ? 0.62 : inv ? 0.38 : mode === 'dg' ? (B.dg.k === 'boss' ? 0.72 : 0.45) : !mode ? 0.48 : 0;
+      if (tgt) { var fl = dpsExp() * Rm * ((B.until - now) / 1000) * tgt; if (fl > B.hp) B.hp = B.max = fl; }
+    }
     var type = B.ub ? ubOf(S.rank).t : mode === 'raid' ? 4 : mode === 'tower' ? B.tower % 5 : mode === 'abyss' ? (B.abyss + 2) % 5 : mode === 'wb' ? 4 : final ? (S.rank % 4) + 1 : inv ? (S.rank + 1) % 4 : miniIdx(gate()) % 4;
     el.bossBox.classList.toggle('titan', mode === 'wb' || mode === 'raid');
     el.stage.classList.toggle('abyssal', mode === 'abyss');
@@ -2695,6 +2710,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
   function checkBoss() {
     if (!B) return;
     if (B.hp <= 0) {
+      dpsSample();
       var rdk = B.raid ? B.raidStart : 0, dgk = B.dg, tw = B.tower, ab = B.abyss, wb = B.wb, wbD = B.wb ? B.wbStart : 0, f = B.final && !tw && !wb && !ab, inv = B.inv, name = B.name, chest = income(0) * (f ? 40 : inv ? 45 * (1 + rl('tre') + P.coffre) : 30);
       B = null; dying = true;
       el.bossBox.classList.add('die'); coinBurst(); bigText(f ? _T('Victoire !') : inv ? _T('Repoussé !') : _T('Vaincu !'), 'gold'); sfx('win');
@@ -2724,6 +2740,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
       fxBurst(el.stage.clientWidth / 2, el.stage.clientHeight * 0.6, true, 40);
       toast(_T('Le Phénix te rend ') + abVal(7) + _T(' secondes !'));
     } else if (Date.now() >= B.until) {
+      dpsSample();
       var rd2 = B.raid ? [B.raidStart, Math.max(1, B.hp)] : null, dg2 = B.dg, n2 = B.name, inv2 = B.inv, ab2 = B.abyss, tw2 = B.tower, wb2 = B.wb, dealt = B.wb ? B.wbStart - B.hp : 0;
       if (wb2) { S.wbs.hp = Math.max(1, B.hp); addTitanParts(dealt); }
       towerChain = false;
@@ -5645,7 +5662,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); min-height: 32px; 
     });
   }
   var T = window._T || function (x) { return x; };
-  var APPV = '24';
+  var APPV = '25';
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
