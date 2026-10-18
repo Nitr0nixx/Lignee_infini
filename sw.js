@@ -1,11 +1,15 @@
 /* EverAscend : fonctionnement hors connexion.
    Après chaque mise à jour du jeu, change le numéro de VERSION ci-dessous. */
-const VERSION = 'lignee-v47';
+const VERSION = 'lignee-v52';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))));
+});
+// la nouvelle version attend que le joueur choisisse « Mettre à jour » (le jeu affiche une notification)
+self.addEventListener('message', (event) => {
+  if (event.data === 'skip') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
