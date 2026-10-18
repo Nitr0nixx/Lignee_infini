@@ -1,6 +1,6 @@
 /* EverAscend : fonctionnement hors connexion.
    Après chaque mise à jour du jeu, change le numéro de VERSION ci-dessous. */
-const VERSION = 'lignee-v56';
+const VERSION = 'lignee-v58';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
