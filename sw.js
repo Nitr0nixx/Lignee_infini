@@ -1,6 +1,8 @@
 /* EverAscend : fonctionnement hors connexion.
    Après chaque mise à jour du jeu, change le numéro de VERSION ci-dessous. */
-const VERSION = 'lignee-v99';
+const VERSION = 'lignee-v104';
+// modèles 3D (dossiers assets/ et r3lib/) : cache à part, gardé d'une version à l'autre tant que ce numéro ne change pas
+const CACHE3D = 'ea3d-1';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -14,7 +16,7 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== CACHE3D).map((k) => caches.delete(k)))).then(() => self.clients.claim())
   );
 });
 
@@ -27,6 +29,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req, { cache: 'no-store' }).then((res) => { const copy = res.clone(); caches.open(VERSION).then((c) => c.put('index.html', copy)); return res; })
         .catch(() => caches.match('index.html'))
+    );
+    return;
+  }
+  // Modèles 3D : cache d'abord, dans le cache qui survit aux mises à jour.
+  if (url.origin === location.origin && /\/(assets|r3lib)\//.test(url.pathname)) {
+    event.respondWith(
+      caches.open(CACHE3D).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res && res.ok) c.put(req, res.clone()); return res; })))
     );
     return;
   }
