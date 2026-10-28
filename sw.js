@@ -1,7 +1,7 @@
 /* EverAscend : fonctionnement hors connexion.
    Après chaque mise à jour du jeu, change le numéro de VERSION ci-dessous. */
-const VERSION = 'lignee-v104';
-// modèles 3D (dossiers assets/ et r3lib/) : cache à part, gardé d'une version à l'autre tant que ce numéro ne change pas
+const VERSION = 'lignee-v108';
+// modèles 3D (fichiers .json et bibliothèque three.js) : cache à part, gardé d'une version à l'autre tant que ce numéro ne change pas
 const CACHE3D = 'ea3d-1';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'];
 const FONTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -32,8 +32,11 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+  // Musiques : jamais servies par ce script (les lecteurs audio demandent des morceaux de fichier que le cache ne sait pas rendre,
+  // surtout sur iPhone) ; le navigateur les garde dans son propre cache. Sans réseau, le jeu reprend sa musique générée.
+  if (url.origin === location.origin && /\.mp3$/.test(url.pathname)) return;
   // Modèles 3D : cache d'abord, dans le cache qui survit aux mises à jour.
-  if (url.origin === location.origin && /\/(assets|r3lib)\//.test(url.pathname)) {
+  if (url.origin === location.origin && /\.json$|\/(three\.module\.min|GLTFLoader|SkeletonUtils|BufferGeometryUtils)\.js$/.test(url.pathname)) {
     event.respondWith(
       caches.open(CACHE3D).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res && res.ok) c.put(req, res.clone()); return res; })))
     );

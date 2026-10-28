@@ -1,16 +1,21 @@
+// Tous les fichiers du jeu sont à plat, à côté d'index.html (plus simple à envoyer sur GitHub depuis un téléphone)
 // EverAscend : rendu 3D réel (three.js r169, modèles KayKit CC0).
 // Ce module ne touche ni à la logique ni aux sauvegardes : il observe la scène du jeu (classes et contenus du DOM)
 // et dessine le même combat en 3D derrière l'interface. Les zones tactiles restent celles du jeu.
-import * as THREE from './r3lib/three.module.min.js';
-import { GLTFLoader } from './r3lib/loaders/GLTFLoader.js';
-import * as SkeletonUtils from './r3lib/utils/SkeletonUtils.js';
+import * as THREE from './three.module.min.js';
+import { GLTFLoader } from './GLTFLoader.js';
+import * as SkeletonUtils from './SkeletonUtils.js';
 
 export function create(G) {
 const canvas = G.canvas;
 const HQ = () => G.q() === 0;
 const BASE = new URL('./', import.meta.url).href;
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+// un seul contexte WebGL pour tout (combat et vitrines des menus) : les téléphones en tolèrent peu
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+let glLost = false;
+canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); glLost = true; if (G.lost) G.lost(true); }, false);
+canvas.addEventListener('webglcontextrestored', () => { glLost = false; if (G.lost) G.lost(false); }, false);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -37,7 +42,7 @@ const loader = new GLTFLoader();
 const cache = {}, packs = {};
 const b64 = s => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u.buffer; };
 const parse = buf => new Promise((res, rej) => loader.parse(buf, '', res, rej));
-const getJSON = f => fetch(BASE + 'assets/' + f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.json(); });
+const getJSON = f => fetch(BASE + f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.json(); });
 function pack(name) { return packs[name] || (packs[name] = getJSON(name + '.json')); }
 function load(path) {
   if (cache[path]) return cache[path];
@@ -937,13 +942,7 @@ function petModel(sp, form, rar) {
 /* ---------- vitrines 3D des menus : un seul moteur hors écran, recopié dans un petit canevas par vitrine ---------- */
 let VR = null, vitRaf = 0, vitLast = 0;
 const vits = new Map();
-function vitRenderer() {
-  if (VR) return VR;
-  VR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-  VR.outputColorSpace = THREE.SRGBColorSpace; VR.toneMapping = THREE.ACESFilmicToneMapping; VR.toneMappingExposure = 0.95;
-  VR.setClearColor(0x000000, 0); VR.setPixelRatio(1); VR.setSize(640, 400, false); VR.autoClear = false;
-  return VR;
-}
+const vb = new THREE.Vector2(), vs = new THREE.Vector2();
 function vitScene() {
   const sc = new THREE.Scene();
   sc.add(new THREE.HemisphereLight(0xfff4e8, 0x3a3048, 1.5));
@@ -999,29 +998,43 @@ function vitVisible(V) {
 }
 function vitKick() { if (!vitRaf && !document.hidden) { vitLast = performance.now(); vitRaf = requestAnimationFrame(vitFrame); } }
 document.addEventListener('visibilitychange', vitKick);
+// boucle propre aux vitrines, seulement quand la boucle du combat ne tourne pas (onglets des menus)
 function vitFrame() {
   vitRaf = 0; if (!vits.size || document.hidden) return;
-  const now = performance.now(), dt = Math.min(0.05, (now - vitLast) / 1000); vitLast = now;
-  let any = false;
+  if (mainDrawing()) { setTimeout(vitKick, 500); return; }
+  const any = vitPass(performance.now());
+  if (vits.size) { if (any) vitRaf = requestAnimationFrame(vitFrame); else setTimeout(vitKick, 400); }
+}
+// dessine chaque vitrine visible dans un coin du canevas du combat, puis la recopie dans son petit canevas
+function vitPass(now) {
+  if (glLost) return false;
+  const dt = Math.min(0.05, (now - vitLast) / 1000); vitLast = now;
+  const R = renderer, pr = R.getPixelRatio();
+  let any = false, buf = R.getDrawingBufferSize(vb);
+  const ex = R.toneMappingExposure, cc = R.getClearAlpha();
   vits.forEach((V, el) => {
     if (!el.isConnected) { vitDrop(el); return; }
     if (!V.ready || !vitVisible(V)) return;
-    any = true;
-    const R = vitRenderer(), dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.min(1024, Math.round(el.clientWidth * dpr)), h = Math.min(640, Math.round(el.clientHeight * dpr));
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    let w = Math.round(el.clientWidth * dpr), h = Math.round(el.clientHeight * dpr);
+    // combat caché : on peut agrandir le tampon de dessin ; sinon on dessine la vitrine à la taille qui tient
+    if ((buf.x < w || buf.y < h) && !G.stage.clientWidth) { R.setSize(Math.max(buf.x, w) / pr, Math.max(buf.y, h) / pr, false); buf = R.getDrawingBufferSize(vb); }
+    const k = Math.min(1, buf.x / w, buf.y / h); w = Math.max(1, Math.floor(w * k)); h = Math.max(1, Math.floor(h * k));
     if (V.cv.width !== w || V.cv.height !== h) { V.cv.width = w; V.cv.height = h; }
-    const sz = R.getSize(new THREE.Vector2()); if (sz.x < w || sz.y < h) R.setSize(Math.max(sz.x, w), Math.max(sz.y, h), false);
-    const H = R.getSize(new THREE.Vector2()).y;
+    any = true;
     V.t += dt; if (!V.hold || now - V.hold > 2500) V.rot += dt * V.auto;
     V.turn.rotation.y = V.rot;
     V.upd.forEach(f => f(dt, V.t)); vitTick(V, dt);
     const o = V.opts; V.cam.aspect = w / h; V.cam.fov = (o.fov || 32) * (w / h < 1.2 ? 1.25 : 1); V.cam.updateProjectionMatrix();
     V.cam.position.set(0, o.cy || 1.4, o.cz || 5); V.cam.lookAt(0, o.ty || 0.8, 0);
-    R.setViewport(0, 0, w, h); R.setScissor(0, 0, w, h); R.setScissorTest(true); R.clear();
-    R.render(V.scene, V.cam); R.setScissorTest(false);
-    V.ctx.clearRect(0, 0, w, h); V.ctx.drawImage(R.domElement, 0, H - h, w, h, 0, 0, w, h);
+    R.toneMappingExposure = 0.95; R.setClearAlpha(0);
+    R.setViewport(0, 0, w / pr, h / pr); R.setScissor(0, 0, w / pr, h / pr); R.setScissorTest(true); R.clear();
+    R.render(V.scene, V.cam);
+    V.ctx.clearRect(0, 0, w, h); V.ctx.drawImage(R.domElement, 0, buf.y - h, w, h, 0, 0, w, h);
   });
-  if (vits.size) { if (any) vitRaf = requestAnimationFrame(vitFrame); else setTimeout(vitKick, 400); }
+  R.setScissorTest(false); R.toneMappingExposure = ex; R.setClearAlpha(cc);
+  R.getSize(vs); R.setViewport(0, 0, vs.x, vs.y);
+  return any;
 }
 // le héros sur son socle (garde-robe) ou avec son équipement (arsenal)
 function vitHero(el, s, gear) {
@@ -1674,7 +1687,8 @@ function frame() {
   const now = performance.now(), rdt = Math.min(0.05, (now - last) / 1000); last = now;
   raf = requestAnimationFrame(frame);
   const w = G.stage.clientWidth, h = G.stage.clientHeight; if (!w || !h) return;
-  if (w !== lastW || h !== lastH) { lastW = w; lastH = h; resize(); layout(); }
+  if (w !== lastW || h !== lastH || canvas.width !== Math.round(w * renderer.getPixelRatio())) { lastW = w; lastH = h; resize(); layout(); }
+  if (glLost) return;
   layoutT += rdt; if (layoutT > 1) { layoutT = 0; layout(); }
   const dt = rdt;
   atkLock -= dt;
@@ -1705,8 +1719,11 @@ function frame() {
   camera.position.copy(baseCam.position); camera.quaternion.copy(baseCam.quaternion);
   camera.position.x += Math.sin(t * 0.31) * 0.05; camera.position.y += Math.sin(t * 0.47) * 0.03;
   if (shakeK > 0.001) { camera.position.x += (Math.random() - 0.5) * shakeK; camera.position.y += (Math.random() - 0.5) * shakeK; shakeK *= Math.exp(-rdt * 9); }
+  if (vits.size) vitPass(now);
+  renderer.setClearAlpha(1);
   renderer.render(scene, camera);
 }
+function mainDrawing() { return active && !!raf && !glLost && G.stage.clientWidth > 0 && !document.hidden; }
 function kick() { if (active && !raf && !document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); } }
 document.addEventListener('visibilitychange', kick);
 
