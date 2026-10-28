@@ -2,9 +2,9 @@
 // EverAscend : rendu 3D réel (three.js r169, modèles KayKit CC0).
 // Ce module ne touche ni à la logique ni aux sauvegardes : il observe la scène du jeu (classes et contenus du DOM)
 // et dessine le même combat en 3D derrière l'interface. Les zones tactiles restent celles du jeu.
-import * as THREE from './three.module.min.js';
-import { GLTFLoader } from './GLTFLoader.js';
-import * as SkeletonUtils from './SkeletonUtils.js';
+import * as THREE from './three.module.min.js?v=169';
+import { GLTFLoader } from './GLTFLoader.js?v=2';
+import * as SkeletonUtils from './SkeletonUtils.js?v=2';
 
 export function create(G) {
 const canvas = G.canvas;

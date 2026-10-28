@@ -1,6 +1,6 @@
 /* EverAscend : fonctionnement hors connexion.
    Après chaque mise à jour du jeu, change le numéro de VERSION ci-dessous. */
-const VERSION = 'lignee-v108';
+const VERSION = 'lignee-v109';
 // modèles 3D (fichiers .json et bibliothèque three.js) : cache à part, gardé d'une version à l'autre tant que ce numéro ne change pas
 const CACHE3D = 'ea3d-1';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'maskable-512.png', 'apple-touch-icon.png'];

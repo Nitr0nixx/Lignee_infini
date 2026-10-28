@@ -7,7 +7,7 @@ import {
 	SkeletonHelper,
 	Vector3,
 	VectorKeyframeTrack
-} from './three.module.min.js';
+} from './three.module.min.js?v=169';
 
 function getBoneName( bone, options ) {
 
